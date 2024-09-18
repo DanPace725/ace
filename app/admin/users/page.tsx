@@ -17,6 +17,13 @@ const CreateChildProfilePage = () => {
     router.push('/admin/profiles');
   };
 
+  // Mock data for existing users
+  const mockUsers = [
+    { id: 1, name: 'Alice', age: 10, grade: 'Grade 5' },
+    { id: 2, name: 'Bob', age: 12, grade: 'Grade 7' },
+    { id: 3, name: 'Charlie', age: 8, grade: 'Grade 3' },
+  ];
+
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
       <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-lg">
@@ -82,6 +89,29 @@ const CreateChildProfilePage = () => {
             </button>
           </div>
         </form>
+
+        <div className="overflow-x-auto mt-8">
+          <table className="w-full text-left text-gray-300">
+            <thead className="text-xs uppercase bg-gray-700">
+              <tr>
+                <th className="px-4 py-2">ID</th>
+                <th className="px-4 py-2">Name</th>
+                <th className="px-4 py-2">Age</th>
+                <th className="px-4 py-2">Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mockUsers.map((user) => (
+                <tr key={user.id} className="border-b border-gray-700">
+                  <td className="px-4 py-2">{user.id}</td>
+                  <td className="px-4 py-2">{user.name}</td>
+                  <td className="px-4 py-2">{user.age}</td>
+                  <td className="px-4 py-2">{user.grade}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

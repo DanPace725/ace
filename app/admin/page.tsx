@@ -8,7 +8,7 @@ const AdminPage = () => {
 
   const adminActions = [
     { title: 'Manage Users', path: '/admin/users' },
-    { title: 'Manage Tasks', path: '/admin/tasks' },
+    { title: 'Manage Tasks', path: '/admin/actions' },
     { title: 'Manage Levels', path: '/admin/levels' },
     { title: 'Manage Rewards', path: '/admin/rewards' },
   ];
