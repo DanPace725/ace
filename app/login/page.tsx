@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import Image from 'next/image'
+import PublicImage from '../components/PublicImage'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -35,17 +35,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-900">
+    <div className="relative flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="absolute top-4 right-4">
+        <PublicImage
+          src="logo1.png"
+          alt="Logo"
+          width={40}
+          height={40}
+          className="rounded-full"
+        />
+      </div>
       <div className="px-8 py-6 mt-4 text-left bg-gray-800 shadow-lg rounded-lg">
-        <div className="flex justify-center">
-          <Image
-            src="/  logo1.png"
-            alt="Logo"
-            width={64}
-            height={64}
-            className="mb-4"
-          />
-        </div>
         <h3 className="text-2xl font-bold text-center text-white">
           {isLogin ? 'Login to your account' : 'Create a new account'}
         </h3>
