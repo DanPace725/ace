@@ -12,6 +12,7 @@ const Sidebar = () => {
     { name: 'Dashboard', path: '/dashboard' },
     { name: 'Log Task', path: '/actions' },
     { name: 'Rewards', path: '/rewards' },
+    { name: 'Admin', path: '/admin' },
   ];
 
   const handleLogout = async () => {
