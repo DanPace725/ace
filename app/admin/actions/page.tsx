@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import PublicImage from '@/app/components/PublicImage';
 
 const ManageTasksPage = () => {
   const [taskName, setTaskName] = useState('');
@@ -25,7 +26,16 @@ const ManageTasksPage = () => {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
-      <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-lg">
+      <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-lg relative">
+        <div className="absolute top-4 right-4">
+          <PublicImage
+            src="logo1.png"
+            alt="Logo"
+            width={40}
+            height={40}
+            className="rounded-full"
+          />
+        </div>
         <div className="flex items-center mb-6">
           <button
             onClick={() => router.back()}
