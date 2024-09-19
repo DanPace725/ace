@@ -25,3 +25,21 @@ body {
     text-wrap: balance;
   }
 }
+/* Customize react-toastify */
+:root {
+  --toastify-color-light: #3f3f3f;
+  --toastify-color-dark: #121212;
+  --toastify-color-info: #3498db;
+  --toastify-color-success: #07bc0c;
+  --toastify-color-warning: #f1c40f;
+  --toastify-color-error: #e74c3c;
+  --toastify-color-transparent: rgba(255, 255, 255, 0.7);
+
+  --toastify-text-color-light: #fff;
+  --toastify-text-color-dark: #fff;
+}
+
+/* Optional: Adjust the toast container for better positioning */
+.Toastify__toast-container {
+  z-index: 9999;
+}
