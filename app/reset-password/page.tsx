@@ -2,17 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/utils/supabase/client'
 import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   useEffect(() => {
     const handlePasswordReset = async () => {
@@ -28,7 +27,7 @@ export default function ResetPasswordPage() {
     }
 
     handlePasswordReset()
-  }, [supabase.auth])
+  }, [])
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,9 +41,7 @@ export default function ResetPasswordPage() {
     try {
       const { error } = await supabase.auth.updateUser({ password })
 
-      if (error) {
-        throw error
-      }
+      if (error) throw error
 
       toast.success('Password updated successfully. Redirecting to login...')
       setTimeout(() => router.push('/login'), 3000)

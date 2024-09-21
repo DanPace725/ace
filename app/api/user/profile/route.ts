@@ -1,76 +1,70 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+// File path: app/api/user/profile/route.ts
+
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { getSessionUser, getAppUser } from '@/utils/api/users';
 
 export async function GET() {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createRouteHandlerClient({ cookies });
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  try {
+    const user = await getSessionUser();
+    console.log('API getSessionUser response:', user);
+    const appUser = await getAppUser(user.id);
 
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+    const { data: managedProfiles, error: profilesError } = await supabase
+      .from('managed_profiles')
+      .select('*')
+      .eq('app_user_id', appUser.id);
 
-  // eslint-disable-next-line prefer-const
-  let { data: userData, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('auth_id', user.id)
-    .single()
-
-    if (error) {
-        // If there's an error, it might be because the user doesn't exist in the public.users table
-        // Let's create a new user record
-        const { data: newUser, error: insertError } = await supabase
-          .from('users')
-          .insert([
-            { 
-                auth_id: user.id, 
-                username: "user", 
-                role: 'user', 
-                xp: 0, 
-                level: 1 
-              }
-          ])
-          .select()
-          .single()
-    
-        if (insertError) {
-          console.error('Error creating user:', insertError)
-          return NextResponse.json({ error: 'Error creating user profile' }, { status: 500 })
-        }
-    
-        userData = newUser
-      }
-    
-      return NextResponse.json(userData)
+    if (profilesError) {
+      console.error('Error fetching managed profiles:', profilesError);
+      return NextResponse.json({ error: 'Error fetching managed profiles' }, { status: 500 });
     }
 
+    return NextResponse.json({ appUser, managedProfiles });
+  } catch (error) {
+    console.error('Error in GET:', error);
+    
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    } else {
+      return NextResponse.json({ error: 'An unknown error occurred' }, { status: 500 });
+    }
+  }
+}
+
 export async function PUT(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies })
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = createRouteHandlerClient({ cookies });
 
-  if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  try {
+    const user = await getSessionUser();
+    const updates = await request.json();
+
+    // Remove any fields that shouldn't be updated directly
+    delete updates.id;
+    delete updates.auth_user_id;
+    delete updates.created_at;
+    delete updates.updated_at;
+
+    const { data, error } = await supabase
+      .from('app_users')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('auth_user_id', user.id)
+      .select();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Error in PUT:', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    } else {
+      return NextResponse.json({ error: 'An unknown error occurred' }, { status: 500 });
+    }
   }
-
-  const updates = await request.json()
-
-  // Remove any fields that shouldn't be updated directly
-  delete updates.id
-  delete updates.auth_id
-  delete updates.role
-  delete updates.created_at
-  delete updates.updated_at
-
-  const { data, error } = await supabase
-    .from('users')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('auth_id', user.id)
-    .select()
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 })
-  }
-
-  return NextResponse.json(data)
 }

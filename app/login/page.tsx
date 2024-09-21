@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn, signUp, resetPassword } from '@/utils/api/auth'
+import { createClient } from '@/utils/supabase/client'
 import PublicImage from '../components/PublicImage'
 import { toast, ToastContainer } from 'react-toastify'
 
@@ -10,41 +10,32 @@ import { toast, ToastContainer } from 'react-toastify'
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isLogin, setIsLogin] = useState(true)
   const [isResetPassword, setIsResetPassword] = useState(false)
   const router = useRouter()
-  
+  const supabase = createClient()
+ 
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
     setIsLoading(true)
 
     try {
-      let response
       if (isResetPassword) {
-        response = await resetPassword(email)
-      } else if (isLogin) {
-        response = await signIn(email, password)
-      } else {
-        response = await signUp(email, password)
-      }
-      if (response.error) {
-        throw new Error(response.error)
-      }
-
-      if (isResetPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email)
+        if (error) throw error
         toast.success('Password reset email sent. Please check your inbox.')
         setIsResetPassword(false)
-      } else if (!isLogin) {
+      } else if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) throw error
+        router.push('/dashboard')
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password })
+        if (error) throw error
         toast.success('Registration successful! Please check your email to verify your account.')
         setIsLogin(true)
-      } else {
-        // Successful login
-        toast.success('Login successful!')
-        router.push('/dashboard')
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'An unexpected error occurred')
@@ -108,7 +99,7 @@ export default function LoginPage() {
             </div>
           </div>
         </form>
-        {error && <p className="mt-4 text-red-500">{error}</p>}
+        
         <div className="mt-6 text-center">
           {!isResetPassword && (
             <button

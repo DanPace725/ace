@@ -7,7 +7,7 @@ const AdminPage = () => {
   const router = useRouter();
 
   const adminActions = [
-    { title: 'Manage Users', path: '/admin/users' },
+    { title: 'Manage Profiles', path: '/admin/app_users' },
     { title: 'Manage Tasks', path: '/admin/actions' },
     { title: 'Manage Levels', path: '/admin/levels' },
     { title: 'Manage Rewards', path: '/admin/rewards' },

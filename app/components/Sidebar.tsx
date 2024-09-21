@@ -1,12 +1,12 @@
 "use client";
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 
 const Sidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard' },
@@ -16,9 +16,13 @@ const Sidebar = () => {
   ];
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      console.error('Error signing out:', error)
+    } else {
+      router.push('/login')
+    }
+  }
 
   return (
     <nav className="bg-gray-800 w-64 min-h-screen p-4 flex flex-col">
@@ -37,7 +41,7 @@ const Sidebar = () => {
         ))}
       </ul>
       <button 
-        className="bg-red-600 text-white p-2 rounded hover:bg-red-700 mt-auto"
+        className="bg-gray-600 text-white p-2 rounded hover:bg-gray-700 mt-auto"
         onClick={handleLogout}
       >
         Logout
