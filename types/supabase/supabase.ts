@@ -146,30 +146,30 @@ export type Database = {
       }
       app_users: {
         Row: {
+          app_user_id: string
           auth_id: string
-          auth_user_id: string
           created_at: string | null
           id: string
           updated_at: string | null
         }
         Insert: {
+          app_user_id: string
           auth_id: string
-          auth_user_id: string
           created_at?: string | null
           id?: string
           updated_at?: string | null
         }
         Update: {
+          app_user_id?: string
           auth_id?: string
-          auth_user_id?: string
           created_at?: string | null
           id?: string
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "app_users_auth_user_id_fkey"
-            columns: ["auth_user_id"]
+            foreignKeyName: "app_users_app_user_id_fkey"
+            columns: ["app_user_id"]
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -301,13 +301,6 @@ export type Database = {
           xp?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "managed_profiles_app_user_id_fkey"
-            columns: ["app_user_id"]
-            isOneToOne: false
-            referencedRelation: "app_users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "managed_profiles_parent_profile_id_fkey"
             columns: ["parent_profile_id"]

@@ -10,15 +10,15 @@ export interface AppUser  {
   
 export interface ManagedProfile {
     id: string;
+    app_user_id: string;
     name: string;
-    xp: number;
     level: number;
+    xp: number;
     created_at: string;
     updated_at: string;
-    app_user_id: string;
     parent_profile_id: string | null;
-}
-  
+  }
+
 export interface Action {
     id: string;
     app_user_id: string;
@@ -43,4 +43,23 @@ export interface ActionLog {
     created_at: string;
 }
   
-// Add other interfaces as needed
+
+
+export interface RecentTask {
+  id: string;
+  actions: {
+    name: string;
+  };
+  timestamp: string;
+  base_xp: number;
+  bonus_xp?: number;
+}
+
+export interface EarnedReward {
+  id: string;
+  rewards: {
+    name: string;
+  };
+  created_at: string;
+  is_claimed: boolean;
+}
