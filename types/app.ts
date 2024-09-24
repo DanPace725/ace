@@ -19,19 +19,16 @@ export interface ManagedProfile {
     parent_profile_id: string | null;
   }
 
-export interface Action {
+  export interface Action {
     id: string;
     app_user_id: string;
     name: string;
     description: string;
-    type: string;
     base_xp: number;
-    repeating: boolean;
     frequency: string;
-    domain: string;
     created_at: string;
     updated_at: string;
-}
+  }
   
 export interface ActionLog {
     id: string;
