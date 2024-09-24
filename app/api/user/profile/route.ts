@@ -1,27 +1,30 @@
-// File path: app/api/user/profile/route.ts
-
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { getSessionUser, getAppUser } from '@/utils/api/users';
 
 export async function GET() {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    const user = await getSessionUser();
-    console.log('API getSessionUser response:', user);
-    const appUser = await getAppUser(user.id);
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) throw userError;
+    if (!user) throw new Error('No user found');
+
+    const { data: appUser, error: appUserError } = await supabase
+      .from('app_users')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (appUserError) throw appUserError;
 
     const { data: managedProfiles, error: profilesError } = await supabase
       .from('managed_profiles')
       .select('*')
       .eq('app_user_id', appUser.id);
 
-    if (profilesError) {
-      console.error('Error fetching managed profiles:', profilesError);
-      return NextResponse.json({ error: 'Error fetching managed profiles' }, { status: 500 });
-    }
+    if (profilesError) throw profilesError;
 
     return NextResponse.json({ appUser, managedProfiles });
   } catch (error) {
@@ -39,14 +42,17 @@ export async function PUT(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    const user = await getSessionUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) throw userError;
+    if (!user) throw new Error('No user found');
+
     const updates = await request.json();
 
     // Remove any fields that shouldn't be updated directly
     delete updates.id;
     delete updates.auth_user_id;
     delete updates.created_at;
-    delete updates.updated_at;
 
     const { data, error } = await supabase
       .from('app_users')
@@ -54,9 +60,7 @@ export async function PUT(request: Request) {
       .eq('auth_user_id', user.id)
       .select();
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
+    if (error) throw error;
 
     return NextResponse.json(data);
   } catch (error) {
