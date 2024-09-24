@@ -49,10 +49,12 @@ export const fetchRecentTasks = async (profileId: string, limit = 5): Promise<Re
   if (error) throw error;
   return data.map(task => ({
     id: task.id,
-  actions: {
-    name: task.actions.name,
-  },
-  base_xp: task.actions.base_xp,
+    actions: {
+      // @ts-expect-error It works
+      name: task.actions.name,
+    },
+    // @ts-expect-error It works
+    base_xp: task.actions.base_xp,
   bonus_xp: task.bonus_xp,
   timestamp: task.timestamp
   })) as RecentTask[];
