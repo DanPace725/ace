@@ -12,7 +12,7 @@ export async function GET(request: Request) {
 
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({
-      type,
+      type: type as 'signup' | 'invite' | 'magiclink' | 'recovery' | 'email_change',
       token_hash,
     })
 
