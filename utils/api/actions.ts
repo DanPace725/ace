@@ -1,12 +1,12 @@
 import { createClient } from '@/utils/supabase/client';
 import { Action } from '@/types/app';
 
-export const fetchActions = async (appUserId: string): Promise<Action[]> => {
+export const fetchActions = async (userId: string): Promise<Action[]> => {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('actions')
     .select('*')
-    .eq('app_user_id', appUserId);
+    .eq('app_user_id', userId);
 
   if (error) throw error;
   return data as Action[];

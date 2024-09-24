@@ -83,8 +83,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Recent Tasks Section */}
-        <div className="mb-8">
+         {/* Recent Tasks Section */}
+         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4 text-white">Recent Tasks</h2>
           <table className="w-full bg-gray-700 rounded-lg shadow-md overflow-hidden">
             <thead>
@@ -100,7 +100,9 @@ const Dashboard = () => {
                   <td className="py-2 px-4 text-white">{task.actions.name}</td>
                   <td className="py-2 px-4 text-white">{new Date(task.timestamp).toLocaleDateString()}</td>
                   <td className="py-2 px-4">
-                    <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">{task.base_xp + (task.bonus_xp || 0)} XP</span>
+                    <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">
+                      {task.base_xp + (task.bonus_xp || 0)} XP
+                    </span>
                   </td>
                 </tr>
               ))}
