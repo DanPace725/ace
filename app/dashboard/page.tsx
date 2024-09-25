@@ -1,16 +1,26 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
+import 'react-circular-progressbar/dist/styles.css';
 import { createClient } from '@/utils/supabase/client';
 import { fetchManagedProfiles, fetchProfileData, fetchRecentTasks, fetchEarnedRewards } from '@/utils/api/profiles';
 import { ManagedProfile, RecentTask, EarnedReward } from '@/types/app';
 
+/**
+ * A functional component that renders the dashboard for a user, 
+ * displaying their recent tasks, earned rewards, and level progress.
+ *
+ * @return {JSX.Element} The JSX element representing the dashboard.
+ */
 const Dashboard = () => {
   const router = useRouter();
   const [profiles, setProfiles] = useState<ManagedProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<ManagedProfile | null>(null);
   const [recentTasks, setRecentTasks] = useState<RecentTask[]>([]);
   const [earnedRewards, setEarnedRewards] = useState<EarnedReward[]>([]);
+  const [currentLevelXP, setCurrentLevelXP] = useState(0);
+  const [nextLevelXP, setNextLevelXP] = useState(0);
 
   useEffect(() => {
     const loadProfiles = async () => {
@@ -39,6 +49,32 @@ const Dashboard = () => {
     loadProfileData();
   }, [selectedProfile]);
 
+  useEffect(() => {
+    const fetchLevelData = async () => {
+      if (selectedProfile) {
+        const supabase = createClient();
+        const { data: levelData, error } = await supabase
+          .from('levels')
+          .select('xp_required, cumulative_xp')
+          .order('level_number', { ascending: true })
+          .limit(2)
+          .gte('level_number', selectedProfile.level);
+
+        if (error) {
+          console.error('Error fetching level data:', error);
+          return;
+        }
+
+        if (levelData && levelData.length > 0) {
+          setCurrentLevelXP(levelData[0].cumulative_xp || 0);
+          setNextLevelXP(levelData[1]?.cumulative_xp || levelData[0].xp_required);
+        }
+      }
+    };
+
+    fetchLevelData();
+  }, [selectedProfile]);
+
   const handleProfileChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const profileId = e.target.value;
     const profile = await fetchProfileData(profileId);
@@ -47,6 +83,15 @@ const Dashboard = () => {
 
   const handleLogTask = () => {
     router.push('/actions');
+  };
+
+  const calculateProgress = () => {
+    if (!selectedProfile) {
+      return 0;
+    }
+    const totalXPForNextLevel = nextLevelXP - currentLevelXP;
+    const currentProgress = selectedProfile.xp - currentLevelXP;
+    return Math.min((currentProgress / totalXPForNextLevel) * 100, 100);
   };
 
   if (!selectedProfile) {
@@ -59,11 +104,19 @@ const Dashboard = () => {
         {/* User Info Section */}
         <div className="bg-gray-700 p-4 rounded-md shadow-md flex items-center justify-between mb-8">
           <div className="flex items-center">
-            <div className="bg-gray-600 w-16 h-16 rounded-full flex items-center justify-center">
-              <span className="text-xl text-white">{selectedProfile.level}</span>
+            <div className="w-24 h-24 mr-4">
+              <CircularProgressbar
+                value={calculateProgress()}
+                text={`${selectedProfile.level}`}
+                styles={buildStyles({
+                  textColor: '#ffffff',
+                  pathColor: '#3b82f6',
+                  trailColor: '#374151',
+                })}
+              />
             </div>
             <div className="ml-4 text-white">
-              <p>XP: <strong>{selectedProfile.xp}</strong></p>
+              <p>XP: <strong>{selectedProfile.xp}</strong> / {nextLevelXP}</p>
               <p>Level: <strong>{selectedProfile.level}</strong></p>
             </div>
           </div>
