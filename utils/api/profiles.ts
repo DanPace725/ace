@@ -72,3 +72,25 @@ export const fetchRecentTasks = async (profileId: string, limit = 5): Promise<Re
     if (error) throw error;
     return data as EarnedReward[];
   };
+  export const updateProfileXP = async (profileId: string) => {
+    const supabase = createClient();
+  
+    // First, calculate the total XP from action_logs
+    const { data: xpData, error: xpError } = await supabase
+      .rpc('calculate_total_xp', { profile_id: profileId });
+  
+    if (xpError) throw xpError;
+  
+    const totalXP = xpData?.[0]?.total_xp || 0;
+  
+    // Then, update the managed_profile with the new XP
+    const { data, error } = await supabase
+      .from('managed_profiles')
+      .update({ xp: totalXP })
+      .eq('id', profileId)
+      .select()
+      .single();
+  
+    if (error) throw error;
+    return data;
+  };

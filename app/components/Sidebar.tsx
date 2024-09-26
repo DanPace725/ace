@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen }: { isOpen: boolean }) => {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -25,26 +25,32 @@ const Sidebar = () => {
   }
 
   return (
-    <nav className="bg-gray-800 w-64 min-h-screen p-4 flex flex-col">
-      <div className="text-white text-2xl font-bold mb-8">ACE Framework</div>
+    // Adjust the width based on the 'isOpen' state
+    <nav className={`bg-gray-800 ${isOpen ? 'w-64' : 'w-16'} min-h-screen p-4 flex flex-col transition-all duration-300`}>
+      {/* Show full title when open, only "ACE" when closed */}
+      <div className={`text-white text-2xl font-bold mb-8 ${isOpen ? '' : 'text-center'}`}>
+        {isOpen ? 'ACE Framework' : 'ACE'}
+      </div>
       <ul className="flex-grow">
         {navItems.map((item) => (
           <li key={item.path} className="mb-4">
             <Link href={item.path}>
               <span className={`block p-2 rounded ${
                 pathname === item.path ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700'
-              }`}>
-                {item.name}
+              } ${isOpen ? '' : 'text-center'}`}>
+                {/* Show only first letter when closed */}
+                {isOpen ? item.name : item.name[0]}
               </span>
             </Link>
           </li>
         ))}
       </ul>
       <button 
-        className="bg-gray-600 text-white p-2 rounded hover:bg-gray-700 mt-auto"
+        className={`bg-gray-600 text-white p-2 rounded hover:bg-gray-700 mt-auto ${isOpen ? '' : 'text-center'}`}
         onClick={handleLogout}
       >
-        Logout
+        {/* Show "Logout" when open, "L" when closed */}
+        {isOpen ? 'Logout' : 'L'}
       </button>
     </nav>
   );

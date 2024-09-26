@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { fetchActions } from '@/utils/api/actions';
 import { createActionLog } from '@/utils/api/actionLogs';
-import { fetchManagedProfiles } from '@/utils/api/profiles';
+import { fetchManagedProfiles, updateProfileXP } from '@/utils/api/profiles';
 import { Action, ManagedProfile } from '@/types/app';
 import { toast } from 'react-toastify';
 
@@ -59,12 +59,20 @@ const LogTaskPage = () => {
     setIsLoading(true);
 
     try {
+      const selectedActionData = actions.find(action => action.id === selectedAction);
+      if (!selectedActionData) {
+        throw new Error('Selected action not found');
+      }
+
       await createActionLog({
         profile_id: selectedProfile.id,
         action_id: selectedAction,
         timestamp: date,
+        base_xp: selectedActionData.base_xp,
         bonus_xp: parseInt(bonusXP) || 0,
       });
+       // Update the profile's XP
+       await updateProfileXP(selectedProfile.id);
       toast.success('Task logged successfully');
       router.push('/dashboard');
     } catch (error) {

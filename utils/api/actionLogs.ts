@@ -4,6 +4,7 @@ export const createActionLog = async (actionLog: {
   profile_id: string;
   action_id: string;
   timestamp: string;
+  base_xp: number;
   bonus_xp?: number;
 }) => {
   const supabase = createClient();
