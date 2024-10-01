@@ -22,7 +22,18 @@ const LogTaskPage = () => {
 
   useEffect(() => {
     loadProfilesAndActions();
-  },[] );
+  }, []);
+  
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const profileId = urlParams.get('profileId');
+    if (profileId) {
+      const profile = profiles.find(p => p.id === profileId);
+      if (profile) {
+        setSelectedProfile(profile);
+      }
+    }
+  }, [profiles]);
 
   const loadProfilesAndActions = async () => {
     try {
@@ -50,6 +61,7 @@ const LogTaskPage = () => {
     }
   };
 
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProfile) {
@@ -74,7 +86,7 @@ const LogTaskPage = () => {
        // Update the profile's XP
        await updateProfileXP(selectedProfile.id);
       toast.success('Task logged successfully');
-      router.push('/dashboard');
+      router.push(`/dashboard?profileId=${selectedProfile?.id}`);
     } catch (error) {
       toast.error('Failed to log task');
       console.error(error);

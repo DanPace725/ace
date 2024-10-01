@@ -4,15 +4,10 @@ import { useRouter } from 'next/navigation';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { createClient } from '@/utils/supabase/client';
-import { fetchManagedProfiles, fetchProfileData, fetchRecentTasks, fetchEarnedRewards } from '@/utils/api/profiles';
+import { fetchManagedProfiles, fetchProfileData, fetchRecentTasks, fetchEarnedRewards, updateProfileLevel } from '@/utils/api/profiles';
+import { fetchLevelData } from '@/utils/api/levels';
 import { ManagedProfile, RecentTask, EarnedReward } from '@/types/app';
 
-/**
- * A functional component that renders the dashboard for a user, 
- * displaying their recent tasks, earned rewards, and level progress.
- *
- * @return {JSX.Element} The JSX element representing the dashboard.
- */
 const Dashboard = () => {
   const router = useRouter();
   const [profiles, setProfiles] = useState<ManagedProfile[]>([]);
@@ -44,36 +39,47 @@ const Dashboard = () => {
         const rewards = await fetchEarnedRewards(selectedProfile.id);
         setRecentTasks(tasks as RecentTask[]);
         setEarnedRewards(rewards as EarnedReward[]);
+        await updateLevelData(selectedProfile.level, selectedProfile.xp);
       }
     };
     loadProfileData();
   }, [selectedProfile]);
 
+  const updateLevelData = async (level: number, xp: number) => {
+    const levelData = await fetchLevelData(level);
+    if (levelData && levelData.length > 0) {
+      setCurrentLevelXP(levelData[0].cumulative_xp || 0);
+      setNextLevelXP(levelData[1]?.cumulative_xp || levelData[0].xp_required);
+
+      // Check for level up
+      if (xp >= levelData[1]?.cumulative_xp) {
+        const newLevel = level + 1;
+        await updateProfileLevel(selectedProfile!.id, newLevel);
+        setSelectedProfile(prev => prev ? {...prev, level: newLevel} : null);
+        await updateLevelData(newLevel, xp);
+      }
+    }
+  };
+  
   useEffect(() => {
-    const fetchLevelData = async () => {
-      if (selectedProfile) {
-        const supabase = createClient();
-        const { data: levelData, error } = await supabase
-          .from('levels')
-          .select('xp_required, cumulative_xp')
-          .order('level_number', { ascending: true })
-          .limit(2)
-          .gte('level_number', selectedProfile.level);
+    handleLevelUp();
+  }, [selectedProfile?.xp]);
 
-        if (error) {
-          console.error('Error fetching level data:', error);
-          return;
-        }
+  
+    
 
-        if (levelData && levelData.length > 0) {
-          setCurrentLevelXP(levelData[0].cumulative_xp || 0);
-          setNextLevelXP(levelData[1]?.cumulative_xp || levelData[0].xp_required);
+    useEffect(() => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const profileId = urlParams.get('profileId');
+      if (profileId && profiles.length > 0) {
+        const profile = profiles.find(p => p.id === profileId);
+        if (profile) {
+          setSelectedProfile(profile);
         }
       }
-    };
+    }, [profiles]);
 
-    fetchLevelData();
-  }, [selectedProfile]);
+        
 
   const handleProfileChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const profileId = e.target.value;
@@ -82,7 +88,7 @@ const Dashboard = () => {
   };
 
   const handleLogTask = () => {
-    router.push('/actions');
+    router.push(`/actions?profileId=${selectedProfile?.id}`);
   };
 
   const calculateProgress = () => {
@@ -92,6 +98,29 @@ const Dashboard = () => {
     const totalXPForNextLevel = nextLevelXP - currentLevelXP;
     const currentProgress = selectedProfile.xp - currentLevelXP;
     return Math.min((currentProgress / totalXPForNextLevel) * 100, 100);
+  };
+  
+  const handleLevelUp = async () => {
+    if (!selectedProfile) return;
+  
+    const levelData = await fetchLevelData(selectedProfile.level);
+    if (!levelData || levelData.length < 2) return;
+  
+    const currentXP = selectedProfile.xp;
+    const nextLevelXP = levelData[1].cumulative_xp;
+  
+    if (currentXP >= nextLevelXP) {
+      // Update the profile's level
+      const newLevel = selectedProfile.level + 1;
+      setSelectedProfile({ ...selectedProfile, level: newLevel });
+  
+      // Fetch the new level data
+      const newLevelData = await fetchLevelData(newLevel);
+      if (newLevelData && newLevelData.length > 0) {
+        setCurrentLevelXP(newLevelData[0].cumulative_xp || 0);
+        setNextLevelXP(newLevelData[1]?.cumulative_xp || newLevelData[0].xp_required);
+      }
+    }
   };
 
   if (!selectedProfile) {

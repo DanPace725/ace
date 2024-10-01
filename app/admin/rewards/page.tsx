@@ -1,30 +1,78 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast, ToastContainer } from 'react-toastify';
+import { fetchRewards, createReward, updateReward, deleteReward } from '@/utils/api/rewards';
+import { Reward } from '@/types/app';
 
 const ManageRewardsPage = () => {
   const [rewardName, setRewardName] = useState('');
   const [type, setType] = useState('');
   const [cost, setCost] = useState('');
   const [level, setLevel] = useState('');
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const loadRewards = async () => {
+      try {
+        const data = await fetchRewards();
+        setRewards(data);
+      } catch (error) {
+        toast.error('Failed to fetch rewards');
+      }
+    };
+
+    loadRewards();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ rewardName, type, cost, level });
-    // Placeholder: In a real app, this would save the data
-    alert(`Reward created: ${rewardName}, Type: ${type}, Cost: ${cost}, Level: ${level}`);
+    try {
+      if (editingReward) {
+        const updated = await updateReward(editingReward.id, { name: rewardName, type, cost, description: level });
+        setRewards(rewards.map(r => r.id === editingReward.id ? updated : r));
+        setEditingReward(null);
+        toast.success('Reward updated successfully');
+      } else {
+        const newReward = await createReward({ name: rewardName, type, cost, description: level });
+        setRewards([...rewards, newReward]);
+        toast.success('Reward created successfully');
+      }
+      setRewardName('');
+      setType('');
+      setCost('');
+      setLevel('');
+    } catch (error) {
+      toast.error('Failed to save reward');
+    }
   };
 
-  // Placeholder data for existing rewards
-  const placeholderRewards = [
-    { reward: 'Stuffed Animal', type: 'Level', cost: null, level: 'Level 3' },
-    { reward: 'Piece of Candy', type: 'Random', cost: 'Content', level: null },
-  ];
+  const handleEdit = (reward: Reward) => {
+    setEditingReward(reward);
+    setRewardName(reward.name);
+    setType(reward.type);
+    setCost(reward.cost ?? '');
+    setLevel(reward.description ?? '');
+  };
+
+  const handleDelete = async (rewardId: string) => {
+    if (window.confirm('Are you sure you want to delete this reward?')) {
+      try {
+        await deleteReward(rewardId);
+        setRewards(rewards.filter(r => r.id !== rewardId));
+        toast.success('Reward deleted successfully');
+      } catch (error) {
+        toast.error('Failed to delete reward');
+      }
+    }
+  };
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
       <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-lg">
         <div className="flex items-center mb-6">
           <button
@@ -73,7 +121,7 @@ const ManageRewardsPage = () => {
             type="submit"
             className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
           >
-            Submit
+            {editingReward ? 'Update Reward' : 'Submit'}
           </button>
         </form>
 
@@ -85,15 +133,30 @@ const ManageRewardsPage = () => {
                 <th className="px-4 py-2">Type</th>
                 <th className="px-4 py-2">Cost</th>
                 <th className="px-4 py-2">Level</th>
+                <th className="px-4 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {placeholderRewards.map((reward, index) => (
-                <tr key={index} className="border-b border-gray-700">
-                  <td className="px-4 py-2">{reward.reward}</td>
+              {rewards.map((reward) => (
+                <tr key={reward.id} className="border-b border-gray-700">
+                  <td className="px-4 py-2">{reward.name}</td>
                   <td className="px-4 py-2">{reward.type}</td>
                   <td className="px-4 py-2">{reward.cost || 'null'}</td>
-                  <td className="px-4 py-2">{reward.level || 'null'}</td>
+                  <td className="px-4 py-2">{reward.description || 'null'}</td>
+                  <td className="px-4 py-2">
+                    <button
+                      onClick={() => handleEdit(reward)}
+                      className="text-blue-400 hover:text-blue-500 mr-2"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(reward.id)}
+                      className="text-red-400 hover:text-red-500"
+                    >
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

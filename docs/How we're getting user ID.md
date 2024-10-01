@@ -1,8 +1,7 @@
-To understand how we're implementing the process of getting the logged-in user's ID and passing it to create a managed profile, let's break it down step by step:
+# To understand how we're implementing the process of getting the logged-in user's ID and passing it to create a managed profile, let's break it down step by step
 
 1. Getting the logged-in user's ID:
    The process starts in the `AppUsersPage` component:
-
 
 ```1:18:app/admin/app_users/page.tsx
 import { createClient } from '@/utils/supabase/server'
@@ -25,7 +24,6 @@ export default async function AppUsersPage() {
 }
 ```
 
-
 Here, we use Supabase's server-side authentication to get the current user:
 
 - We create a Supabase client using `createClient()` from the server-side utilities.
@@ -35,7 +33,6 @@ Here, we use Supabase's server-side authentication to get the current user:
 
 2. Passing the user ID to the profile creation function:
    The `ProfileManager` component receives the `userId` prop and uses it when calling the `createManagedProfile` function:
-
 
 ```1:74:app/components/ProfileManager.tsx
 'use client'
@@ -114,7 +111,6 @@ const ProfileManager = ({ userId }: ProfileManagerProps) => {
 export default ProfileManager
 ```
 
-
 Key points in this component:
 
 - It receives `userId` as a prop (line 9).
@@ -122,7 +118,6 @@ Key points in this component:
 
 3. Creating the managed profile:
    The `createManagedProfile` function is defined in the `users.ts` file:
-
 
 ```1:22:utils/api/users.ts
 // utils/api/users.ts
@@ -148,7 +143,6 @@ export const createManagedProfile = async (name: string, appUserId: string) => {
   }
 };
 ```
-
 
 This function:
 

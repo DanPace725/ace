@@ -9,8 +9,8 @@ import { Action } from '@/types/app';
 
 const ManageActionsPage = () => {
   const [actions, setActions] = useState<Action[]>([]);
-  const [newAction, setNewAction] = useState({ name: '', description: '', base_xp: 0, frequency: '' });
-  const [editingAction, setEditingAction] = useState<string | null>(null);
+  const [actionForm, setActionForm] = useState({ name: '', description: '', base_xp: 0, frequency: '' });
+  const [editingAction, setEditingAction] = useState<Action | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -40,29 +40,34 @@ const ManageActionsPage = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const createdAction = await createAction({ ...newAction, app_user_id: user.id });
-        setActions([createdAction, ...actions]);
-        setNewAction({ name: '', description: '', base_xp: 0, frequency: '' });
-        toast.success('Action created successfully');
+        if (editingAction) {
+          const updatedAction = await updateAction(editingAction.id, { ...actionForm, app_user_id: user.id });
+          setActions(actions.map(a => a.id === editingAction.id ? updatedAction : a));
+          setEditingAction(null);
+          toast.success('Action updated successfully');
+        } else {
+          const createdAction = await createAction({ ...actionForm, app_user_id: user.id });
+          setActions([createdAction, ...actions]);
+          toast.success('Action created successfully');
+        }
+        setActionForm({ name: '', description: '', base_xp: 0, frequency: '' });
       }
     } catch (error) {
-      toast.error('Failed to create action');
+      toast.error('Failed to save action');
       console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleEdit = async (actionId: string, updatedAction: Partial<Action>) => {
-    try {
-      const updated = await updateAction(actionId, updatedAction);
-      setActions(actions.map(a => a.id === actionId ? updated : a));
-      setEditingAction(null);
-      toast.success('Action updated successfully');
-    } catch (error) {
-      toast.error('Failed to update action');
-      console.error(error);
-    }
+  const handleEdit = (action: Action) => {
+    setEditingAction(action);
+    setActionForm({
+      name: action.name,
+      description: action.description,
+      base_xp: action.base_xp,
+      frequency: action.frequency,
+    });
   };
 
   const handleDelete = async (actionId: string) => {
@@ -81,53 +86,66 @@ const ManageActionsPage = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
       <div className="w-full max-w-4xl bg-gray-800 p-8 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-white mb-8">Manage Actions</h1>
+        <div className="flex items-center mb-6">
+          <button
+            onClick={() => router.back()}
+            className="text-gray-300 hover:text-white mr-4"
+          >
+            ← Back
+          </button>
+          <h1 className="text-3xl font-bold text-white">Manage Actions</h1>
+        </div>
         
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
           <input
             type="text"
             placeholder="Action Name"
-            value={newAction.name}
-            onChange={(e) => setNewAction({...newAction, name: e.target.value})}
+            value={actionForm.name}
+            onChange={(e) => setActionForm({...actionForm, name: e.target.value})}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
           <input
             type="text"
             placeholder="Description"
-            value={newAction.description}
-            onChange={(e) => setNewAction({...newAction, description: e.target.value})}
+            value={actionForm.description}
+            onChange={(e) => setActionForm({...actionForm, description: e.target.value})}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             type="number"
             placeholder="Base XP"
-            value={newAction.base_xp}
-            onChange={(e) => setNewAction({...newAction, base_xp: parseInt(e.target.value)})}
+            value={actionForm.base_xp}
+            onChange={(e) => setActionForm({...actionForm, base_xp: parseInt(e.target.value)})}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
           <input
             type="text"
             placeholder="Frequency"
-            value={newAction.frequency}
-            onChange={(e) => setNewAction({...newAction, frequency: e.target.value})}
+            value={actionForm.frequency}
+            onChange={(e) => setActionForm({...actionForm, frequency: e.target.value})}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <div className="flex space-x-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="w-full bg-gray-600 text-white p-2 rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-200"
-            >
-              Cancel
-            </button>
+            {editingAction && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingAction(null);
+                  setActionForm({ name: '', description: '', base_xp: 0, frequency: '' });
+                }}
+                className="w-full bg-gray-600 text-white p-2 rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-200"
+              >
+                Cancel
+              </button>
+            )}
             <button
               type="submit"
               className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
               disabled={isLoading}
             >
-              {isLoading ? 'Creating...' : 'Create Action'}
+              {isLoading ? 'Saving...' : editingAction ? 'Update Action' : 'Create Action'}
             </button>
           </div>
         </form>
@@ -146,86 +164,23 @@ const ManageActionsPage = () => {
             <tbody>
               {actions.map((action) => (
                 <tr key={action.id} className="border-b border-gray-700">
+                  <td className="px-4 py-2">{action.name}</td>
+                  <td className="px-4 py-2">{action.description}</td>
+                  <td className="px-4 py-2">{action.base_xp}</td>
+                  <td className="px-4 py-2">{action.frequency}</td>
                   <td className="px-4 py-2">
-                    {editingAction === action.id ? (
-                      <input
-                        type="text"
-                        value={action.name}
-                        onChange={(e) => setActions(actions.map(a => a.id === action.id ? { ...a, name: e.target.value } : a))}
-                        className="bg-gray-600 text-white p-1 rounded-md"
-                      />
-                    ) : (
-                      action.name
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {editingAction === action.id ? (
-                      <input
-                        type="text"
-                        value={action.description}
-                        onChange={(e) => setActions(actions.map(a => a.id === action.id ? { ...a, description: e.target.value } : a))}
-                        className="bg-gray-600 text-white p-1 rounded-md"
-                      />
-                    ) : (
-                      action.description
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {editingAction === action.id ? (
-                      <input
-                        type="number"
-                        value={action.base_xp}
-                        onChange={(e) => setActions(actions.map(a => a.id === action.id ? { ...a, base_xp: parseInt(e.target.value) } : a))}
-                        className="bg-gray-600 text-white p-1 rounded-md"
-                      />
-                    ) : (
-                      action.base_xp
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {editingAction === action.id ? (
-                      <input
-                        type="text"
-                        value={action.frequency}
-                        onChange={(e) => setActions(actions.map(a => a.id === action.id ? { ...a, frequency: e.target.value } : a))}
-                        className="bg-gray-600 text-white p-1 rounded-md"
-                      />
-                    ) : (
-                      action.frequency
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {editingAction === action.id ? (
-                      <>
-                        <button
-                          onClick={() => handleEdit(action.id, action)}
-                          className="text-green-400 hover:text-green-500 mr-2"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingAction(null)}
-                          className="text-gray-400 hover:text-gray-500"
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => setEditingAction(action.id)}
-                          className="text-blue-400 hover:text-blue-500 mr-2"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(action.id)}
-                          className="text-red-400 hover:text-red-500"
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
+                    <button
+                      onClick={() => handleEdit(action)}
+                      className="text-blue-400 hover:text-blue-500 mr-2"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(action.id)}
+                      className="text-red-400 hover:text-red-500"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}

@@ -60,3 +60,13 @@ export interface EarnedReward {
   created_at: string;
   is_claimed: boolean;
 }
+
+export interface Reward {
+  id: string;
+  name: string;
+  type: string;
+  cost: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}

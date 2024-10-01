@@ -94,3 +94,16 @@ export const fetchRecentTasks = async (profileId: string, limit = 5): Promise<Re
     if (error) throw error;
     return data;
   };
+
+  export const updateProfileLevel = async (profileId: string, newLevel: number) => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ level: newLevel })
+      .eq('id', profileId)
+      .select()
+      .single();
+  
+    if (error) throw error;
+    return data;
+  };
