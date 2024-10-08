@@ -61,10 +61,7 @@ const Dashboard = () => {
     }
   };
   
-  useEffect(() => {
-    handleLevelUp();
-  }, [selectedProfile?.xp]);
-
+ 
   
     
 
@@ -100,28 +97,7 @@ const Dashboard = () => {
     return Math.min((currentProgress / totalXPForNextLevel) * 100, 100);
   };
   
-  const handleLevelUp = async () => {
-    if (!selectedProfile) return;
   
-    const levelData = await fetchLevelData(selectedProfile.level);
-    if (!levelData || levelData.length < 2) return;
-  
-    const currentXP = selectedProfile.xp;
-    const nextLevelXP = levelData[1].cumulative_xp;
-  
-    if (currentXP >= nextLevelXP) {
-      // Update the profile's level
-      const newLevel = selectedProfile.level + 1;
-      setSelectedProfile({ ...selectedProfile, level: newLevel });
-  
-      // Fetch the new level data
-      const newLevelData = await fetchLevelData(newLevel);
-      if (newLevelData && newLevelData.length > 0) {
-        setCurrentLevelXP(newLevelData[0].cumulative_xp || 0);
-        setNextLevelXP(newLevelData[1]?.cumulative_xp || newLevelData[0].xp_required);
-      }
-    }
-  };
 
   if (!selectedProfile) {
     return <div>Loading...</div>;

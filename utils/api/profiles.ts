@@ -98,7 +98,7 @@ export const fetchRecentTasks = async (profileId: string, limit = 5): Promise<Re
   export const updateProfileLevel = async (profileId: string, newLevel: number) => {
     const supabase = createClient();
     const { data, error } = await supabase
-      .from('profiles')
+      .from('managed_profiles')
       .update({ level: newLevel })
       .eq('id', profileId)
       .select()
