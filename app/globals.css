@@ -19,6 +19,7 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+  @apply bg-gray-900 text-white m-0 p-0;
 }
 
 @layer utilities {
@@ -43,4 +44,8 @@ body {
 /* Optional: Adjust the toast container for better positioning */
 .Toastify__toast-container {
   z-index: 9999;
+}
+
+#__next {
+  @apply h-screen w-screen overflow-hidden;
 }

@@ -128,12 +128,12 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
-      <div className="w-full max-w-4xl bg-gray-800 p-8 rounded-lg shadow-lg">
+    <div className="flex justify-center items-center min-h-screen bg-gray-900 p-2 sm:p-4">
+      <div className="w-full max-w-4xl bg-gray-800 p-4 sm:p-8 rounded-lg shadow-lg">
         {/* User Info Section */}
-        <div className="bg-gray-700 p-4 rounded-md shadow-md flex items-center justify-between mb-8">
-          <div className="flex items-center">
-            <div className="w-24 h-24 mr-4">
+        <div className="bg-gray-700 p-4 rounded-md shadow-md flex flex-col sm:flex-row items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-center mb-4 sm:mb-0">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 mb-4 sm:mb-0 sm:mr-4">
               <CircularProgressbar
                 value={calculateProgress()}
                 text={`${selectedProfile.level}`}
@@ -144,14 +144,14 @@ const Dashboard = () => {
                 })}
               />
             </div>
-            <div className="ml-4 text-white">
-              <p>XP: <strong>{selectedProfile.xp}</strong> / {nextLevelXP}</p>
-              <p>Level: <strong>{selectedProfile.level}</strong></p>
+            <div className="text-white text-center sm:text-left">
+              <p className="text-sm sm:text-base">Current XP: <strong>{selectedProfile.xp}</strong> / {nextLevelXP}</p>
+              <p className="text-sm sm:text-base">XP to Next Level: <strong>{nextLevelXP - selectedProfile.xp}</strong></p>
             </div>
           </div>
-          <div>
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto">
             <select 
-              className="bg-gray-600 text-white p-2 rounded-md mr-2"
+              className="bg-gray-600 text-white p-2 rounded-md mb-2 sm:mb-0 sm:mr-2 w-full sm:w-auto"
               onChange={handleProfileChange}
               value={selectedProfile.id}
             >
@@ -159,7 +159,7 @@ const Dashboard = () => {
                 <option key={profile.id} value={profile.id}>{profile.name}</option>
               ))}
             </select>
-            <button onClick={handleLogTask} className="bg-blue-600 text-white px-4 py-2 rounded-md mr-2 hover:bg-blue-700">
+            <button onClick={handleLogTask} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full sm:w-auto">
               Log New Task
             </button>
           </div>
@@ -168,7 +168,8 @@ const Dashboard = () => {
          {/* Recent Tasks Section */}
          <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4 text-white">Recent Tasks</h2>
-          <table className="w-full bg-gray-700 rounded-lg shadow-md overflow-hidden">
+          <div className="hidden sm:block"> {/* Table view for larger screens */}
+            <table className="w-full bg-gray-700 rounded-lg shadow-md overflow-hidden">
             <thead>
               <tr className="bg-gray-600 text-left text-white">
                 <th className="py-2 px-4">Task</th>
@@ -191,11 +192,24 @@ const Dashboard = () => {
             </tbody>
           </table>
         </div>
+        <div className="sm:hidden"> {/* Card view for mobile */}
+            {recentTasks.map((task: RecentTask) => (
+              <div key={task.id} className="bg-gray-700 rounded-lg shadow-md p-4 mb-4">
+                <h3 className="text-lg font-semibold text-white">{task.actions.name}</h3>
+                <p className="text-gray-300">{new Date(task.timestamp).toLocaleDateString()}</p>
+                <span className="inline-block mt-2 bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">
+                  {task.base_xp + (task.bonus_xp || 0)} XP
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Earned Rewards Section */}
         <div>
           <h2 className="text-2xl font-bold mb-4 text-white">Earned Rewards</h2>
-          <table className="w-full bg-gray-700 rounded-lg shadow-md overflow-hidden">
+          <div className="hidden sm:block"> {/* Table view for larger screens */}
+            <table className="w-full bg-gray-700 rounded-lg shadow-md overflow-hidden">
             <thead>
               <tr className="bg-gray-600 text-left text-white">
                 <th className="py-2 px-4">Reward</th>
@@ -219,6 +233,25 @@ const Dashboard = () => {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="sm:hidden"> {/* Card view for mobile */}
+            {earnedRewards.map((reward: EarnedReward) => (
+              <div key={reward.id} className="bg-gray-700 rounded-lg shadow-md p-4 mb-4">
+                <h3 className="text-lg font-semibold text-white">{reward.rewards.name}</h3>
+                <p className="text-gray-300">{new Date(reward.created_at).toLocaleDateString()}</p>
+                <div className="mt-2">
+                  {reward.is_claimed ? (
+                    <span className="text-green-400">Claimed</span>
+                  ) : (
+                    <label className="inline-flex items-center">
+                      <input type="checkbox" className="form-checkbox h-5 w-5 text-blue-600" />
+                      <span className="ml-2 text-white">Claim</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

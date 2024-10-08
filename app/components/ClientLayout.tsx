@@ -25,36 +25,33 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return <>{children}</>
   }
 
-  // Main layout structure with collapsible sidebar
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar component with dynamic width based on open/closed state */}
-      <div
-        className={`transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? 'w-64' : 'w-16'
-        }`}
-      >
-        <Sidebar isOpen={isSidebarOpen} />
-      </div>
-
-      {/* Main content area */}
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Header with sidebar toggle button */}
-        <header className="bg-gray-800 p-4">
+    <div className="flex h-screen overflow-hidden bg-gray-900">
+      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-gray-800 text-white p-4 flex items-center">
           <button
             onClick={toggleSidebar}
-            className="text-white focus:outline-none"
-            aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+            className="mr-4 focus:outline-none"
+            aria-label="Toggle sidebar"
           >
             <FaBars size={24} />
           </button>
+      
         </header>
-
-        {/* Main content */}
-        <main className="flex-1 overflow-auto p-4">
+        
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-900 p-4">
           {children}
         </main>
       </div>
+
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden" 
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
     </div>
   )
 }
