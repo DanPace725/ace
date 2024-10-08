@@ -46,8 +46,9 @@ const ManageRewardsPage = () => {
       setType('');
       setCost('');
       setLevel('');
-    } catch (error) {
+    } catch (error: unknown) {
       toast.error('Failed to save reward');
+      console.error(error);
     }
   };
 
@@ -65,7 +66,8 @@ const ManageRewardsPage = () => {
         await deleteReward(rewardId);
         setRewards(rewards.filter(r => r.id !== rewardId));
         toast.success('Reward deleted successfully');
-      } catch (error) {
+      } catch (error: unknown) {
+        console.error(error);
         toast.error('Failed to delete reward');
       }
     }
