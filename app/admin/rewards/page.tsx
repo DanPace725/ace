@@ -20,8 +20,9 @@ const ManageRewardsPage = () => {
       try {
         const data = await fetchRewards();
         setRewards(data);
-      } catch (error) {
+      } catch (error: unknown) {
         toast.error('Failed to fetch rewards');
+        console.error(error);
       }
     };
 
