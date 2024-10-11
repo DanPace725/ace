@@ -1,11 +1,10 @@
-Here's a Project Specification Document based on the provided codebase:
+# Here's a Project Specification Document based on the provided codebase:
 
-# ACE Framework App - Project Specification Document
+## ACE Framework App - Project Specification Document
 
 ## 1. Project Overview
 
 The ACE (Action-Centered Engagement) Framework App is a gamified task-tracking and rewards system built with Next.js and Supabase. It encourages users to take consistent actions toward their goals by providing immediate feedback, XP accumulation, skill progression, and a rewards system.
-
 
 ```1:24:README.md
 # ace
@@ -34,7 +33,6 @@ This app is designed to be flexible and scalable, adapting to various contexts l
 
 ```
 
-
 ## 2. Technology Stack
 
 - Frontend: Next.js 14.2.12 (React 18)
@@ -43,7 +41,6 @@ This app is designed to be flexible and scalable, adapting to various contexts l
 - Deployment: Vercel
 - Authentication: Supabase Auth
 - Database: PostgreSQL (via Supabase)
-
 
 ```11:32:package.json
   "dependencies": {
@@ -70,7 +67,6 @@ This app is designed to be flexible and scalable, adapting to various contexts l
   }
 ```
 
-
 ## 3. Key Features
 
 1. User Authentication
@@ -79,7 +75,6 @@ This app is designed to be flexible and scalable, adapting to various contexts l
 4. Rewards System
 5. Admin Management
 6. Responsive Design
-
 
 ```11:17:README.md
 ## Features
@@ -90,7 +85,6 @@ This app is designed to be flexible and scalable, adapting to various contexts l
 - **Authentication**: Secure user login using Supabase authentication.
 - **Responsive Design**: Optimized for desktop and mobile use.
 ```
-
 
 ## 4. Database Schema
 
@@ -104,7 +98,6 @@ The database includes the following tables:
 - Levels
 - Rewards
 - LongTermGoals
-
 
 ```1:126:supabase/migrations/001_initial_schema.sql
 -- Users Table
@@ -235,11 +228,9 @@ CREATE TABLE long_term_goals (
 );
 ```
 
-
 ## 5. Authentication
 
 The app uses Supabase Authentication. Users can sign up and log in using email and password. The authentication flow is implemented in the login page:
-
 
 ```1:100:app/login/page.tsx
 'use client'
@@ -343,11 +334,9 @@ export default function LoginPage() {
 }
 ```
 
-
 ## 6. Routing and Middleware
 
 The app uses Next.js App Router. A middleware is implemented to protect routes and redirect unauthenticated users to the login page:
-
 
 ```1:22:middleware.ts
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
@@ -374,11 +363,9 @@ export const config = {
 }
 ```
 
-
 ## 7. User Interface
 
 The app features a dark-themed UI with a sidebar navigation for authenticated users. The layout is responsive and uses Tailwind CSS for styling.
-
 
 ```1:24:app/layout.tsx
 import './globals.css'
@@ -406,8 +393,6 @@ export default function RootLayout({
   )
 }
 ```
-
-
 
 ```1:48:app/components/Sidebar.tsx
 "use client";
@@ -459,7 +444,6 @@ const Sidebar = () => {
 
 ```
 
-
 ## 8. Main Pages
 
 1. Dashboard (`/dashboard`)
@@ -477,7 +461,6 @@ The app uses React's built-in state management with hooks. Supabase client is us
 
 The app is configured for deployment on Vercel:
 
-
 ```1:9:vercel.json
 {
     "version": 2,
@@ -489,7 +472,6 @@ The app is configured for deployment on Vercel:
     ]
   }
 ```
-
 
 ## 11. Environment Variables
 
@@ -505,7 +487,6 @@ The app requires the following environment variables:
 3. Enhance the admin interface for easier task management
 4. Improve UI design and accessibility
 
-
 ```85:89:README.md
 ## Next Steps
 - Add real-time updates using Supabase.
@@ -514,11 +495,9 @@ The app requires the following environment variables:
 - Improve UI design and accessibility.
 ```
 
-
 ## 13. License
 
 The project is licensed under the MIT License.
-
 
 ```1:22:LICENSE
 MIT License
@@ -544,6 +523,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ```
-
 
 This specification provides an overview of the ACE Framework App based on the provided codebase. It outlines the main features, technology stack, and structure of the application. Developers should refer to individual component files for more detailed implementation specifics.
