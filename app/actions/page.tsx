@@ -8,7 +8,7 @@ import { createClient } from '@/utils/supabase/client';
 import { fetchActions } from '@/utils/api/actions';
 import { createActionLog } from '@/utils/api/actionLogs';
 import { fetchManagedProfiles, updateProfileXP } from '@/utils/api/profiles';
-import {  earnReward, fetchUnclaimedRewards } from '@/utils/api/rewards';
+import { earnReward } from '@/utils/api/rewards';
 import { Action, ManagedProfile } from '@/types/app';
 import { toast } from 'react-toastify';
 

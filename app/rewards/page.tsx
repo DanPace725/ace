@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchEarnedRewards } from '@/utils/api/profiles';
 import { fetchUnclaimedRewards, fetchClaimedRewards, claimReward } from '@/utils/api/rewards';
 import { fetchManagedProfiles } from '@/utils/api/profiles';
-import { EarnedReward, Reward, ManagedProfile } from '@/types/app';
+import { EarnedReward, ManagedProfile } from '@/types/app';
 import { toast } from 'react-toastify';
 
 const RewardsPage = () => {
