@@ -53,11 +53,13 @@ export interface RecentTask {
 }
 
 export interface EarnedReward {
-  id: string;
+  profile_id: string;
+  reward_id: string;
   rewards: {
     name: string;
   };
   created_at: string;
+  updated_at: string;
   is_claimed: boolean;
 }
 

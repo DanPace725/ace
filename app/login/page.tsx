@@ -52,8 +52,8 @@ export default function LoginPage() {
           <PublicImage
             src="logo1.png"
             alt="Logo"
-            width={40}
-            height={40}
+            width={32}
+            height={32}
             className="mb-4 rounded-full"
           />
         </div>

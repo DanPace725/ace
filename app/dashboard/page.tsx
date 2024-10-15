@@ -6,7 +6,9 @@ import 'react-circular-progressbar/dist/styles.css';
 import { createClient } from '@/utils/supabase/client';
 import { fetchManagedProfiles, fetchProfileData, fetchRecentTasks, fetchEarnedRewards, updateProfileLevel } from '@/utils/api/profiles';
 import { fetchLevelData } from '@/utils/api/levels';
+import { fetchLevelReward, earnReward } from '@/utils/api/rewards';
 import { ManagedProfile, RecentTask, EarnedReward } from '@/types/app';
+import { toast } from 'react-toastify';
 
 const Dashboard = () => {
   const router = useRouter();
@@ -22,7 +24,7 @@ const Dashboard = () => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const fetchedProfiles = await fetchManagedProfiles(user.id);
+        const fetchedProfiles = await fetchManagedProfiles();
         setProfiles(fetchedProfiles);
         if (fetchedProfiles.length > 0) {
           setSelectedProfile(fetchedProfiles[0]);
@@ -39,25 +41,43 @@ const Dashboard = () => {
         const rewards = await fetchEarnedRewards(selectedProfile.id);
         setRecentTasks(tasks as RecentTask[]);
         setEarnedRewards(rewards as EarnedReward[]);
-        await updateLevelData(selectedProfile.level, selectedProfile.xp);
+        await updateLevelData(selectedProfile.id, selectedProfile.level, selectedProfile.xp);
       }
     };
     loadProfileData();
   }, [selectedProfile]);
 
-  const updateLevelData = async (level: number, xp: number) => {
-    const levelData = await fetchLevelData(level);
+  const updateLevelData = async (profileId: string, currentLevel: number, currentXP: number) => {
+    const levelData = await fetchLevelData(currentLevel);
     if (levelData && levelData.length > 0) {
       setCurrentLevelXP(levelData[0].cumulative_xp || 0);
       setNextLevelXP(levelData[1]?.cumulative_xp || levelData[0].xp_required);
-
+  
       // Check for level up
-      if (xp >= levelData[1]?.cumulative_xp) {
-        const newLevel = level + 1;
-        await updateProfileLevel(selectedProfile!.id, newLevel);
+      if (currentXP >= levelData[1]?.cumulative_xp) {
+        const newLevel = currentLevel + 1;
+        await updateProfileLevel(profileId, newLevel);
         setSelectedProfile(prev => prev ? {...prev, level: newLevel} : null);
-        await updateLevelData(newLevel, xp);
+        
+        // Distribute level reward
+        await distributeLevelReward(profileId, newLevel);
+        
+        // Recursively call updateLevelData with the new level
+        await updateLevelData(profileId, newLevel, currentXP);
       }
+    }
+  };
+  
+  const distributeLevelReward = async (profileId: string, level: number) => {
+    try {
+      const levelReward = await fetchLevelReward(level);
+      if (levelReward) {
+        await earnReward(profileId, levelReward.id);
+        toast.success(`You've earned a new reward for reaching level ${level}!`);
+      }
+    } catch (error) {
+      console.error('Failed to distribute level reward:', error);
+      toast.error('Failed to distribute level reward');
     }
   };
   
@@ -138,6 +158,9 @@ const Dashboard = () => {
             <button onClick={handleLogTask} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full sm:w-auto">
               Log New Task
             </button>
+            <button onClick={() => router.push(`/rewards?profileId=${selectedProfile?.id}`)} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 w-full sm:w-auto">
+              View Rewards
+            </button>
           </div>
         </div>
 
@@ -195,7 +218,7 @@ const Dashboard = () => {
             </thead>
             <tbody>
               {earnedRewards.map((reward : EarnedReward) => (
-                <tr key={reward.id} className="border-t border-gray-600">
+                <tr key={reward.reward_id} className="border-t border-gray-600">
                   <td className="py-2 px-4 text-white">{reward.rewards.name}</td>
                   <td className="py-2 px-4 text-white">{new Date(reward.created_at).toLocaleDateString()}</td>
                   <td className="py-2 px-4">
@@ -212,7 +235,7 @@ const Dashboard = () => {
         </div>
         <div className="sm:hidden"> {/* Card view for mobile */}
             {earnedRewards.map((reward: EarnedReward) => (
-              <div key={reward.id} className="bg-gray-700 rounded-lg shadow-md p-4 mb-4">
+              <div key={reward.reward_id} className="bg-gray-700 rounded-lg shadow-md p-4 mb-4">
                 <h3 className="text-lg font-semibold text-white">{reward.rewards.name}</h3>
                 <p className="text-gray-300">{new Date(reward.created_at).toLocaleDateString()}</p>
                 <div className="mt-2">

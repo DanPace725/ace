@@ -1,16 +1,20 @@
 import { createClient } from '@/utils/supabase/client';
 import { ManagedProfile, RecentTask, EarnedReward } from '@/types/app';
 
-export const fetchManagedProfiles = async (appUserId: string) => {
+export const fetchManagedProfiles = async () => {
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No authenticated user');
+
   const { data, error } = await supabase
     .from('managed_profiles')
     .select('*')
-    .eq('app_user_id', appUserId);
+    .eq('app_user_id', user.id);
 
   if (error) throw error;
   return data as ManagedProfile[];
 };
+
 
 export const fetchProfileData = async (profileId: string): Promise<ManagedProfile> => {
   const supabase = createClient();
