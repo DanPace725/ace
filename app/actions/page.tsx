@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client';
 import { fetchActions } from '@/utils/api/actions';
 import { createActionLog } from '@/utils/api/actionLogs';
 import { fetchManagedProfiles, updateProfileXP } from '@/utils/api/profiles';
+import { earnReward } from '@/utils/api/rewards';
 import { Action, ManagedProfile } from '@/types/app';
 import { toast } from 'react-toastify';
 
@@ -41,7 +42,7 @@ const LogTaskPage = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const fetchedProfiles = await fetchManagedProfiles(user.id);
+        const fetchedProfiles = await fetchManagedProfiles();
         setProfiles(fetchedProfiles);
         if (fetchedProfiles.length > 0) {
           setSelectedProfile(fetchedProfiles[0]);
@@ -87,6 +88,7 @@ const LogTaskPage = () => {
       });
        // Update the profile's XP
        await updateProfileXP(selectedProfile.id);
+       await handleRandomReward(selectedProfile!.id);
       toast.success('Task logged successfully');
       router.push(`/dashboard?profileId=${selectedProfile?.id}`);
     } catch (error) {
@@ -96,6 +98,35 @@ const LogTaskPage = () => {
       setIsLoading(false);
     }
   };
+
+  const handleRandomReward = async (profileId: string) => {
+    try {
+      const chance = Math.random();
+      if (chance <= 0.1) { // 10% chance of getting a random reward
+        // Fetch all rewards from the rewards table
+        const { data: availableRewards, error } = await supabase
+          .from('rewards')
+          .select('*');
+  
+        if (error) throw error;
+  
+        if (availableRewards && availableRewards.length > 0) {
+          // Randomly select a reward from the list
+          const randomReward = availableRewards[Math.floor(Math.random() * availableRewards.length)];
+          
+          // Mark the reward as earned
+          await earnReward(profileId, randomReward.id);
+          
+          // Notify the user with a success message
+          toast.success(`You've earned a random reward: ${randomReward.name}!`);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to handle random reward:', error);
+      toast.error('Failed to award random reward');
+    }
+  };
+  
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
