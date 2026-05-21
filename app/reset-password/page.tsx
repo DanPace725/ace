@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { toast } from 'react-toastify'
@@ -11,13 +11,13 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     const handlePasswordReset = async () => {
-      const accessToken = new URL(window.location.href).searchParams.get('access_token')
-      if (accessToken) {
-        const { error } = await supabase.auth.exchangeCodeForSession(accessToken)
+      const code = new URL(window.location.href).searchParams.get('code')
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (error) {
           toast.error('Invalid or expired reset link. Please request a new password reset.')
         }
@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
     }
 
     handlePasswordReset()
-  }, [])
+  }, [supabase])
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-toastify'
 import { createManagedProfile, fetchManagedProfiles, updateManagedProfile, deleteManagedProfile } from '@/utils/api/users'
@@ -8,31 +8,40 @@ import { ManagedProfile } from '@/types/app'
 
 interface ProfileManagerProps {
   userId: string
+  fallbackUserId?: string
+  canCreateProfile?: boolean
 }
 
-const ProfileManager = ({ userId }: ProfileManagerProps) => {
+const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: ProfileManagerProps) => {
   const [name, setName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [profiles, setProfiles] = useState<ManagedProfile[]>([])
   const [editingProfile, setEditingProfile] = useState<string | null>(null)
   const router = useRouter()
 
-  useEffect(() => {
-    loadProfiles()
-  }, [userId])
-
-  const loadProfiles = async () => {
+  const loadProfiles = useCallback(async () => {
     try {
-      const fetchedProfiles = await fetchManagedProfiles(userId)
+      const fetchedProfiles = await fetchManagedProfiles(
+        fallbackUserId ? [userId, fallbackUserId] : userId
+      )
       setProfiles(fetchedProfiles)
     } catch (error) {
       toast.error('Failed to load profiles')
       console.error(error)
     }
-  }
+  }, [fallbackUserId, userId])
+
+  useEffect(() => {
+    loadProfiles()
+  }, [loadProfiles])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!canCreateProfile) {
+      toast.error('Cannot create a profile until the app user record is available')
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -79,6 +88,11 @@ const ProfileManager = ({ userId }: ProfileManagerProps) => {
         <h1 className="text-3xl font-bold text-white mb-8">Manage Profiles</h1>
         
         <form onSubmit={handleSubmit} className="space-y-6 mb-8">
+          {!canCreateProfile && (
+            <p className="rounded-md bg-yellow-900/40 p-3 text-sm text-yellow-100">
+              Profile creation is unavailable because the app user record could not be found.
+            </p>
+          )}
           <div>
             <label htmlFor="name" className="block text-gray-300 mb-2">Profile Name</label>
             <input
@@ -94,15 +108,15 @@ const ProfileManager = ({ userId }: ProfileManagerProps) => {
           <div className="flex space-x-4">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => router.push('/admin')}
               className="flex-1 bg-gray-600 text-white p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-200"
             >
-              Cancel
+              Back to Admin
             </button>
             <button
               type="submit"
               className="flex-1 bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-              disabled={isLoading}
+              disabled={isLoading || !canCreateProfile}
             >
               {isLoading ? 'Creating...' : 'Create Profile'}
             </button>
@@ -132,7 +146,7 @@ const ProfileManager = ({ userId }: ProfileManagerProps) => {
                       onClick={() => setEditingProfile(null)}
                       className="bg-gray-500 text-white px-2 py-1 rounded-md hover:bg-gray-600"
                     >
-                      Cancel
+                      Discard
                     </button>
                   </div>
                 ) : (

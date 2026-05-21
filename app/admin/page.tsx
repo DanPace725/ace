@@ -14,16 +14,16 @@ const AdminPage = () => {
   ];
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
-      <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-white mb-8">Admin Dashboard</h1>
+    <div className="mx-auto w-full max-w-2xl">
+      <div className="rounded-md bg-gray-800 p-5 shadow-lg sm:p-8">
+        <h1 className="text-3xl font-bold text-white mb-6">Admin</h1>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {adminActions.map((action, index) => (
             <button
               key={index}
               onClick={() => router.push(action.path)}
-              className="bg-gray-700 text-white p-4 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+              className="rounded-md bg-gray-700 p-4 text-left font-medium text-white transition hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {action.title}
             </button>

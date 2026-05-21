@@ -6,7 +6,6 @@ import { ManagedProfile } from '@/types/app';
 
 export const createManagedProfile = async (name: string, appUserId: string) => {
   const supabase = createClient();
-  console.log('Starting createManagedProfile with name:', name, 'and appUserId:', appUserId);
   try {
     const { data, error } = await supabase
       .from('managed_profiles')
@@ -23,15 +22,18 @@ export const createManagedProfile = async (name: string, appUserId: string) => {
 
 // ... existing imports and functions ...
 
-export const fetchManagedProfiles = async (appUserId: string) => {
+export const fetchManagedProfiles = async (appUserIds: string | string[]) => {
   const supabase = createClient();
-  console.log('Fetching managed profiles for appUserId:', appUserId);
   try {
-    const { data, error } = await supabase
+    const query = supabase
       .from('managed_profiles')
       .select('*')
-      .eq('app_user_id', appUserId)
       .order('created_at', { ascending: false });
+
+    const ids = Array.isArray(appUserIds) ? appUserIds : [appUserIds];
+    const { data, error } = ids.length > 1
+      ? await query.in('app_user_id', ids)
+      : await query.eq('app_user_id', ids[0]);
 
     if (error) throw error;
     return data as ManagedProfile[];

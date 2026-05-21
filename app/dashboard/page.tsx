@@ -1,260 +1,294 @@
 'use client'
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
-import 'react-circular-progressbar/dist/styles.css';
-import { createClient } from '@/utils/supabase/client';
-import { fetchManagedProfiles, fetchProfileData, fetchRecentTasks, fetchEarnedRewards, updateProfileLevel } from '@/utils/api/profiles';
-import { fetchLevelData } from '@/utils/api/levels';
-import { fetchLevelReward, earnReward } from '@/utils/api/rewards';
-import { ManagedProfile, RecentTask, EarnedReward } from '@/types/app';
-import { toast } from 'react-toastify';
+
+import React, { useCallback, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
+import 'react-circular-progressbar/dist/styles.css'
+import { fetchManagedProfiles, fetchProfileData, fetchRecentTasks, fetchEarnedRewards, updateProfileLevel } from '@/utils/api/profiles'
+import { fetchLevelData } from '@/utils/api/levels'
+import { fetchLevelReward, earnReward } from '@/utils/api/rewards'
+import { ManagedProfile, RecentTask, EarnedReward } from '@/types/app'
+import { toast } from 'react-toastify'
+import { getCurrentAppUserIdentity } from '@/utils/api/appUsers'
 
 const Dashboard = () => {
-  const router = useRouter();
-  const [profiles, setProfiles] = useState<ManagedProfile[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState<ManagedProfile | null>(null);
-  const [recentTasks, setRecentTasks] = useState<RecentTask[]>([]);
-  const [earnedRewards, setEarnedRewards] = useState<EarnedReward[]>([]);
-  const [currentLevelXP, setCurrentLevelXP] = useState(0);
-  const [nextLevelXP, setNextLevelXP] = useState(0);
+  const router = useRouter()
+  const [profiles, setProfiles] = useState<ManagedProfile[]>([])
+  const [selectedProfile, setSelectedProfile] = useState<ManagedProfile | null>(null)
+  const [recentTasks, setRecentTasks] = useState<RecentTask[]>([])
+  const [earnedRewards, setEarnedRewards] = useState<EarnedReward[]>([])
+  const [currentLevelXP, setCurrentLevelXP] = useState(0)
+  const [nextLevelXP, setNextLevelXP] = useState(0)
 
   useEffect(() => {
     const loadProfiles = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const fetchedProfiles = await fetchManagedProfiles();
-        setProfiles(fetchedProfiles);
+      const identity = await getCurrentAppUserIdentity()
+      if (identity) {
+        const fetchedProfiles = await fetchManagedProfiles(identity.lookupIds)
+        setProfiles(fetchedProfiles)
         if (fetchedProfiles.length > 0) {
-          setSelectedProfile(fetchedProfiles[0]);
+          setSelectedProfile(fetchedProfiles[0])
         }
       }
-    };
-    loadProfiles();
-  }, []);
+    }
+
+    loadProfiles()
+  }, [])
+
+  const distributeLevelReward = useCallback(async (profileId: string, level: number) => {
+    try {
+      const levelReward = await fetchLevelReward(level)
+      if (levelReward) {
+        await earnReward(profileId, levelReward.id)
+        toast.success(`You've earned a new reward for reaching level ${level}!`)
+      }
+    } catch (error) {
+      console.error('Failed to distribute level reward:', error)
+      toast.error('Failed to distribute level reward')
+    }
+  }, [])
+
+  const updateLevelData = useCallback(async (profileId: string, currentLevel: number, currentXP: number) => {
+    const levelData = await fetchLevelData(currentLevel)
+    if (levelData && levelData.length > 0) {
+      setCurrentLevelXP(levelData[0].cumulative_xp || 0)
+      setNextLevelXP(levelData[1]?.cumulative_xp || levelData[0].xp_required)
+
+      if (currentXP >= levelData[1]?.cumulative_xp) {
+        const newLevel = currentLevel + 1
+        await updateProfileLevel(profileId, newLevel)
+        setSelectedProfile(prev => prev ? { ...prev, level: newLevel } : null)
+        await distributeLevelReward(profileId, newLevel)
+        await updateLevelData(profileId, newLevel, currentXP)
+      }
+    }
+  }, [distributeLevelReward])
 
   useEffect(() => {
     const loadProfileData = async () => {
       if (selectedProfile) {
-        const tasks = await fetchRecentTasks(selectedProfile.id);
-        const rewards = await fetchEarnedRewards(selectedProfile.id);
-        setRecentTasks(tasks as RecentTask[]);
-        setEarnedRewards(rewards as EarnedReward[]);
-        await updateLevelData(selectedProfile.id, selectedProfile.level, selectedProfile.xp);
-      }
-    };
-    loadProfileData();
-  }, [selectedProfile]);
-
-  const updateLevelData = async (profileId: string, currentLevel: number, currentXP: number) => {
-    const levelData = await fetchLevelData(currentLevel);
-    if (levelData && levelData.length > 0) {
-      setCurrentLevelXP(levelData[0].cumulative_xp || 0);
-      setNextLevelXP(levelData[1]?.cumulative_xp || levelData[0].xp_required);
-  
-      // Check for level up
-      if (currentXP >= levelData[1]?.cumulative_xp) {
-        const newLevel = currentLevel + 1;
-        await updateProfileLevel(profileId, newLevel);
-        setSelectedProfile(prev => prev ? {...prev, level: newLevel} : null);
-        
-        // Distribute level reward
-        await distributeLevelReward(profileId, newLevel);
-        
-        // Recursively call updateLevelData with the new level
-        await updateLevelData(profileId, newLevel, currentXP);
+        const tasks = await fetchRecentTasks(selectedProfile.id)
+        const rewards = await fetchEarnedRewards(selectedProfile.id)
+        setRecentTasks(tasks)
+        setEarnedRewards(rewards)
+        await updateLevelData(selectedProfile.id, selectedProfile.level, selectedProfile.xp)
       }
     }
-  };
-  
-  const distributeLevelReward = async (profileId: string, level: number) => {
-    try {
-      const levelReward = await fetchLevelReward(level);
-      if (levelReward) {
-        await earnReward(profileId, levelReward.id);
-        toast.success(`You've earned a new reward for reaching level ${level}!`);
+
+    loadProfileData()
+  }, [selectedProfile, updateLevelData])
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const profileId = urlParams.get('profileId')
+    if (profileId && profiles.length > 0) {
+      const profile = profiles.find(p => p.id === profileId)
+      if (profile) {
+        setSelectedProfile(profile)
       }
-    } catch (error) {
-      console.error('Failed to distribute level reward:', error);
-      toast.error('Failed to distribute level reward');
     }
-  };
-  
- 
-  
-    
-
-    useEffect(() => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const profileId = urlParams.get('profileId');
-      if (profileId && profiles.length > 0) {
-        const profile = profiles.find(p => p.id === profileId);
-        if (profile) {
-          setSelectedProfile(profile);
-        }
-      }
-    }, [profiles]);
-
-        
+  }, [profiles])
 
   const handleProfileChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const profileId = e.target.value;
-    const profile = await fetchProfileData(profileId);
-    setSelectedProfile(profile);
-  };
-
-  const handleLogTask = () => {
-    router.push(`/actions?profileId=${selectedProfile?.id}`);
-  };
-
-  const calculateProgress = () => {
-    if (!selectedProfile) {
-      return 0;
-    }
-    const totalXPForNextLevel = nextLevelXP - currentLevelXP;
-    const currentProgress = selectedProfile.xp - currentLevelXP;
-    return Math.min((currentProgress / totalXPForNextLevel) * 100, 100);
-  };
-  
-  
-
-  if (!selectedProfile) {
-    return <div>Loading...</div>;
+    const profileId = e.target.value
+    const profile = await fetchProfileData(profileId)
+    setSelectedProfile(profile)
   }
 
+  const handleLogTask = () => {
+    router.push(`/actions?profileId=${selectedProfile?.id}`)
+  }
+
+  const calculateProgress = () => {
+    if (!selectedProfile || nextLevelXP <= currentLevelXP) {
+      return 0
+    }
+
+    const totalXPForNextLevel = nextLevelXP - currentLevelXP
+    const currentProgress = selectedProfile.xp - currentLevelXP
+    return Math.max(0, Math.min((currentProgress / totalXPForNextLevel) * 100, 100))
+  }
+
+  if (profiles.length === 0 && !selectedProfile) {
+    return (
+      <div className="mx-auto flex min-h-[70vh] max-w-md items-center">
+        <div className="w-full rounded-md bg-gray-800 p-5 shadow-lg">
+          <h1 className="mb-2 text-2xl font-bold text-white">ACE</h1>
+          <p className="mb-5 text-gray-300">Create a profile to start logging tasks and earning rewards.</p>
+          <button
+            onClick={() => router.push('/admin/app_users')}
+            className="w-full rounded-md bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-500"
+          >
+            Create Profile
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!selectedProfile) {
+    return <div className="mx-auto max-w-md rounded-md bg-gray-800 p-5 text-gray-300">Loading...</div>
+  }
+
+  const xpToNext = Math.max(nextLevelXP - selectedProfile.xp, 0)
+
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-900 p-2 sm:p-4">
-      <div className="w-full max-w-4xl bg-gray-800 p-4 sm:p-8 rounded-lg shadow-lg">
-        {/* User Info Section */}
-        <div className="bg-gray-700 p-4 rounded-md shadow-md flex flex-col sm:flex-row items-center justify-between mb-8">
-          <div className="flex flex-col sm:flex-row items-center mb-4 sm:mb-0">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 mb-4 sm:mb-0 sm:mr-4">
-              <CircularProgressbar
-                value={calculateProgress()}
-                text={`${selectedProfile.level}`}
-                styles={buildStyles({
-                  textColor: '#ffffff',
-                  pathColor: '#3b82f6',
-                  trailColor: '#374151',
-                })}
-              />
-            </div>
-            <div className="text-white text-center sm:text-left">
-              <p className="text-sm sm:text-base">Current XP: <strong>{selectedProfile.xp}</strong> / {nextLevelXP}</p>
-              <p className="text-sm sm:text-base">XP to Next Level: <strong>{nextLevelXP - selectedProfile.xp}</strong></p>
-            </div>
+    <div className="mx-auto w-full max-w-4xl space-y-6">
+      <section className="rounded-md bg-gray-800 p-4 shadow-lg sm:p-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm text-gray-400">Current profile</p>
+            <h1 className="text-2xl font-bold text-white">{selectedProfile.name}</h1>
           </div>
-          <div className="flex flex-col sm:flex-row w-full sm:w-auto">
-            <select 
-              className="bg-gray-600 text-white p-2 rounded-md mb-2 sm:mb-0 sm:mr-2 w-full sm:w-auto"
-              onChange={handleProfileChange}
-              value={selectedProfile.id}
-            >
-              {profiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>{profile.name}</option>
-              ))}
-            </select>
-            <button onClick={handleLogTask} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full sm:w-auto">
-              Log New Task
-            </button>
-            <button onClick={() => router.push(`/rewards?profileId=${selectedProfile?.id}`)} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 w-full sm:w-auto">
-              View Rewards
-            </button>
-          </div>
-        </div>
-
-         {/* Recent Tasks Section */}
-         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4 text-white">Recent Tasks</h2>
-          <div className="hidden sm:block"> {/* Table view for larger screens */}
-            <table className="w-full bg-gray-700 rounded-lg shadow-md overflow-hidden">
-            <thead>
-              <tr className="bg-gray-600 text-left text-white">
-                <th className="py-2 px-4">Task</th>
-                <th className="py-2 px-4">Date</th>
-                <th className="py-2 px-4">XP Earned</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentTasks.map((task: RecentTask) => (
-                <tr key={task.id} className="border-t border-gray-600">
-                  <td className="py-2 px-4 text-white">{task.actions.name}</td>
-                  <td className="py-2 px-4 text-white">{new Date(task.timestamp).toLocaleDateString()}</td>
-                  <td className="py-2 px-4">
-                    <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">
-                      {task.base_xp + (task.bonus_xp || 0)} XP
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="sm:hidden"> {/* Card view for mobile */}
-            {recentTasks.map((task: RecentTask) => (
-              <div key={task.id} className="bg-gray-700 rounded-lg shadow-md p-4 mb-4">
-                <h3 className="text-lg font-semibold text-white">{task.actions.name}</h3>
-                <p className="text-gray-300">{new Date(task.timestamp).toLocaleDateString()}</p>
-                <span className="inline-block mt-2 bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">
-                  {task.base_xp + (task.bonus_xp || 0)} XP
-                </span>
-              </div>
+          <select
+            className="max-w-[45%] rounded-md bg-gray-700 p-2 text-sm text-white"
+            onChange={handleProfileChange}
+            value={selectedProfile.id}
+            aria-label="Select profile"
+          >
+            {profiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>{profile.name}</option>
             ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-[88px_1fr] items-center gap-4">
+          <div className="h-20 w-20">
+            <CircularProgressbar
+              value={calculateProgress()}
+              text={`${selectedProfile.level}`}
+              styles={buildStyles({
+                textColor: '#ffffff',
+                pathColor: '#3b82f6',
+                trailColor: '#374151',
+              })}
+            />
+          </div>
+          <div className="space-y-1 text-white">
+            <p className="text-sm text-gray-300">Level {selectedProfile.level}</p>
+            <p className="text-lg font-semibold">{selectedProfile.xp} XP</p>
+            <p className="text-sm text-gray-300">{xpToNext} XP to next level</p>
           </div>
         </div>
 
-        {/* Earned Rewards Section */}
-        <div>
-          <h2 className="text-2xl font-bold mb-4 text-white">Earned Rewards</h2>
-          <div className="hidden sm:block"> {/* Table view for larger screens */}
-            <table className="w-full bg-gray-700 rounded-lg shadow-md overflow-hidden">
-            <thead>
-              <tr className="bg-gray-600 text-left text-white">
-                <th className="py-2 px-4">Reward</th>
-                <th className="py-2 px-4">Date</th>
-                <th className="py-2 px-4">Claim</th>
-              </tr>
-            </thead>
-            <tbody>
-              {earnedRewards.map((reward : EarnedReward) => (
-                <tr key={reward.reward_id} className="border-t border-gray-600">
-                  <td className="py-2 px-4 text-white">{reward.rewards.name}</td>
-                  <td className="py-2 px-4 text-white">{new Date(reward.created_at).toLocaleDateString()}</td>
-                  <td className="py-2 px-4">
-                    {reward.is_claimed ? (
-                      <span className="text-green-400">Claimed</span>
-                    ) : (
-                      <input type="checkbox" className="bg-gray-500 border-gray-400 text-blue-600 focus:ring-blue-500" />
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button
+            onClick={handleLogTask}
+            className="rounded-md bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-500"
+          >
+            Log Task
+          </button>
+          <button
+            onClick={() => router.push(`/rewards?profileId=${selectedProfile.id}`)}
+            className="rounded-md bg-gray-700 px-4 py-3 font-medium text-white hover:bg-gray-600"
+          >
+            View Rewards
+          </button>
         </div>
-        <div className="sm:hidden"> {/* Card view for mobile */}
-            {earnedRewards.map((reward: EarnedReward) => (
-              <div key={reward.reward_id} className="bg-gray-700 rounded-lg shadow-md p-4 mb-4">
-                <h3 className="text-lg font-semibold text-white">{reward.rewards.name}</h3>
-                <p className="text-gray-300">{new Date(reward.created_at).toLocaleDateString()}</p>
-                <div className="mt-2">
-                  {reward.is_claimed ? (
-                    <span className="text-green-400">Claimed</span>
-                  ) : (
-                    <label className="inline-flex items-center">
-                      <input type="checkbox" className="form-checkbox h-5 w-5 text-blue-600" />
-                      <span className="ml-2 text-white">Claim</span>
-                    </label>
-                  )}
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white">Recent Tasks</h2>
+          <button onClick={handleLogTask} className="text-sm font-medium text-blue-300">Add</button>
+        </div>
+        {recentTasks.length > 0 ? (
+          <div className="space-y-3 sm:hidden">
+            {recentTasks.map((task) => (
+              <div key={task.id} className="rounded-md bg-gray-800 p-4 shadow-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-white">{task.actions.name}</h3>
+                    <p className="text-sm text-gray-300">{new Date(task.timestamp).toLocaleDateString()}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-blue-200 px-2 py-1 text-xs text-blue-800">
+                    {task.base_xp + (task.bonus_xp || 0)} XP
+                  </span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+        ) : (
+          <div className="rounded-md bg-gray-800 p-4 text-gray-300">No tasks logged yet.</div>
+        )}
 
-export default Dashboard;
+        {recentTasks.length > 0 && (
+          <div className="hidden overflow-hidden rounded-md bg-gray-800 shadow-md sm:block">
+            <table className="w-full text-left text-gray-300">
+              <thead className="bg-gray-700 text-xs uppercase text-white">
+                <tr>
+                  <th className="px-4 py-2">Task</th>
+                  <th className="px-4 py-2">Date</th>
+                  <th className="px-4 py-2">XP</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentTasks.map((task) => (
+                  <tr key={task.id} className="border-t border-gray-700">
+                    <td className="px-4 py-2 text-white">{task.actions.name}</td>
+                    <td className="px-4 py-2">{new Date(task.timestamp).toLocaleDateString()}</td>
+                    <td className="px-4 py-2">{task.base_xp + (task.bonus_xp || 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white">Rewards</h2>
+          <button onClick={() => router.push(`/rewards?profileId=${selectedProfile.id}`)} className="text-sm font-medium text-blue-300">All</button>
+        </div>
+
+        {earnedRewards.length > 0 ? (
+          <div className="space-y-3 sm:hidden">
+            {earnedRewards.map((reward) => (
+              <div key={reward.reward_id} className="rounded-md bg-gray-800 p-4 shadow-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-white">{reward.rewards.name}</h3>
+                    <p className="text-sm text-gray-300">{new Date(reward.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <span className={reward.is_claimed ? 'shrink-0 text-sm text-green-400' : 'shrink-0 text-sm text-yellow-300'}>
+                    {reward.is_claimed ? 'Claimed' : 'Unclaimed'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-md bg-gray-800 p-4 text-gray-300">No rewards earned yet.</div>
+        )}
+
+        {earnedRewards.length > 0 && (
+          <div className="hidden overflow-hidden rounded-md bg-gray-800 shadow-md sm:block">
+            <table className="w-full text-left text-gray-300">
+              <thead className="bg-gray-700 text-xs uppercase text-white">
+                <tr>
+                  <th className="px-4 py-2">Reward</th>
+                  <th className="px-4 py-2">Date</th>
+                  <th className="px-4 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {earnedRewards.map((reward) => (
+                  <tr key={reward.reward_id} className="border-t border-gray-700">
+                    <td className="px-4 py-2 text-white">{reward.rewards.name}</td>
+                    <td className="px-4 py-2">{new Date(reward.created_at).toLocaleDateString()}</td>
+                    <td className={reward.is_claimed ? 'px-4 py-2 text-green-400' : 'px-4 py-2 text-yellow-300'}>
+                      {reward.is_claimed ? 'Claimed' : 'Unclaimed'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+export default Dashboard

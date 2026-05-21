@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PublicImage from '../components/PublicImage'
-import { toast, ToastContainer } from 'react-toastify'
+import { toast } from 'react-toastify'
 
 
 export default function LoginPage() {
@@ -46,7 +46,6 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
-      <ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} />
       <div className="px-8 py-6 mt-4 text-left bg-gray-800 shadow-lg rounded-lg">
         <div className="flex justify-center">
           <PublicImage

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import { fetchRewards, createReward, updateReward, deleteReward } from '@/utils/api/rewards';
 import { Reward } from '@/types/app';
 
@@ -75,15 +75,9 @@ const ManageRewardsPage = () => {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
       <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-lg">
-        <div className="flex items-center mb-6">
-          <button
-            onClick={() => router.back()}
-            className="text-gray-300 hover:text-white mr-4"
-          >
-            ←
-          </button>
+        <div className="mb-6">
+          <p className="text-sm text-gray-400">Admin tools</p>
           <h1 className="text-3xl font-bold text-white">Manage Rewards</h1>
         </div>
         
@@ -120,15 +114,61 @@ const ManageRewardsPage = () => {
             onChange={(e) => setLevel(e.target.value)}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-          >
-            {editingReward ? 'Update Reward' : 'Submit'}
-          </button>
+          <div className="flex gap-3">
+            {editingReward && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingReward(null);
+                  setRewardName('');
+                  setType('');
+                  setCost('');
+                  setLevel('');
+                }}
+                className="w-full bg-gray-600 text-white p-2 rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-200"
+              >
+                Discard
+              </button>
+            )}
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+            >
+              {editingReward ? 'Update Reward' : 'Create Reward'}
+            </button>
+          </div>
         </form>
 
-        <div className="overflow-x-auto">
+        <div className="space-y-3 sm:hidden">
+          {rewards.map((reward) => (
+            <div key={reward.id} className="rounded-md bg-gray-700 p-4">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold text-white">{reward.name}</h2>
+                  <p className="text-sm text-gray-300">{reward.type}</p>
+                </div>
+                <span className="shrink-0 text-sm text-gray-300">{reward.cost || 'No cost'}</span>
+              </div>
+              <p className="mb-3 text-sm text-gray-300">Level: {reward.description || 'None'}</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleEdit(reward)}
+                  className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(reward.id)}
+                  className="flex-1 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-left text-gray-300">
             <thead className="text-xs uppercase bg-gray-700">
               <tr>
@@ -165,6 +205,14 @@ const ManageRewardsPage = () => {
             </tbody>
           </table>
         </div>
+
+        <button
+          type="button"
+          onClick={() => router.push('/admin')}
+          className="mt-6 w-full rounded-md bg-gray-700 p-3 font-medium text-white transition hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+        >
+          Back to Admin
+        </button>
       </div>
     </div>
   );
