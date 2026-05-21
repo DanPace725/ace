@@ -58,6 +58,11 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-bold text-white mb-4">Profile</h1>
 
         <div className="space-y-2 mb-6">
+          {profile.authUser?.email && (
+            <p className="text-white">
+              Email: <span className="text-gray-300 break-all">{profile.authUser.email}</span>
+            </p>
+          )}
           <p className="text-white">
             Account ID: <span className="text-gray-300 break-all">{profile.appUser.id}</span>
           </p>

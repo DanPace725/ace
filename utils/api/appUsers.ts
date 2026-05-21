@@ -7,6 +7,29 @@ export interface AppUserIdentity {
   lookupIds: string[]
 }
 
+const appUserAuthColumns = ['auth_id', 'auth_user_id'] as const
+
+const findAppUserByAuthId = async (supabase: ReturnType<typeof createClient>, authUserId: string) => {
+  let lastError: unknown = null
+
+  for (const column of appUserAuthColumns) {
+    const { data, error } = await supabase
+      .from('app_users')
+      .select('*')
+      .eq(column, authUserId)
+      .maybeSingle()
+
+    if (!error) {
+      return data
+    }
+
+    lastError = error
+  }
+
+  console.warn('Could not load app user record; falling back to auth user id.', lastError)
+  return null
+}
+
 export const getCurrentAppUserIdentity = async (): Promise<AppUserIdentity | null> => {
   const supabase = createClient()
   const {
@@ -17,16 +40,7 @@ export const getCurrentAppUserIdentity = async (): Promise<AppUserIdentity | nul
   if (userError) throw userError
   if (!user) return null
 
-  const { data: appUser, error: appUserError } = await supabase
-    .from('app_users')
-    .select('id')
-    .eq('auth_user_id', user.id)
-    .maybeSingle()
-
-  if (appUserError) {
-    console.warn('Could not load app user record; falling back to auth user id.', appUserError)
-  }
-
+  const appUser = await findAppUserByAuthId(supabase, user.id)
   const appUserRecordId = appUser?.id ?? null
   const appUserId = appUserRecordId ?? user.id
   const lookupIds = Array.from(new Set([appUserId, user.id]))

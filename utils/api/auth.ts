@@ -7,6 +7,10 @@ interface AuthResponse {
   error?: string
 }
 export interface UserProfile {
+  authUser?: {
+    id: string
+    email?: string
+  }
   appUser: {
     id: string
     auth_user_id?: string
@@ -85,6 +89,7 @@ export async function resetPassword(email: string): Promise<{ error?: string }> 
   export async function getUserProfile(): Promise<{ user: UserProfile | null, error?: string }> {
     const response = await fetch('/api/user/profile', {
       method: 'GET',
+      cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
       },
