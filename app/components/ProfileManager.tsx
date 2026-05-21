@@ -9,9 +9,10 @@ import { ManagedProfile } from '@/types/app'
 interface ProfileManagerProps {
   userId: string
   fallbackUserId?: string
+  canCreateProfile?: boolean
 }
 
-const ProfileManager = ({ userId, fallbackUserId }: ProfileManagerProps) => {
+const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: ProfileManagerProps) => {
   const [name, setName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [profiles, setProfiles] = useState<ManagedProfile[]>([])
@@ -36,6 +37,11 @@ const ProfileManager = ({ userId, fallbackUserId }: ProfileManagerProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!canCreateProfile) {
+      toast.error('Cannot create a profile until the app user record is available')
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -82,6 +88,11 @@ const ProfileManager = ({ userId, fallbackUserId }: ProfileManagerProps) => {
         <h1 className="text-3xl font-bold text-white mb-8">Manage Profiles</h1>
         
         <form onSubmit={handleSubmit} className="space-y-6 mb-8">
+          {!canCreateProfile && (
+            <p className="rounded-md bg-yellow-900/40 p-3 text-sm text-yellow-100">
+              Profile creation is unavailable because the app user record could not be found.
+            </p>
+          )}
           <div>
             <label htmlFor="name" className="block text-gray-300 mb-2">Profile Name</label>
             <input
@@ -105,7 +116,7 @@ const ProfileManager = ({ userId, fallbackUserId }: ProfileManagerProps) => {
             <button
               type="submit"
               className="flex-1 bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-              disabled={isLoading}
+              disabled={isLoading || !canCreateProfile}
             >
               {isLoading ? 'Creating...' : 'Create Profile'}
             </button>

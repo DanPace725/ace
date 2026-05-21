@@ -1,12 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { getUserProfile, UserProfile } from '@/utils/api/auth'
+import { createClient } from '@/utils/supabase/client'
 import { toast } from 'react-toastify'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClient()
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -38,9 +42,19 @@ export default function ProfilePage() {
     return <div className="text-white">No user data available.</div>
   }
 
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      toast.error('Failed to sign out')
+      console.error(error)
+    } else {
+      router.push('/login')
+    }
+  }
+
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
-      <div className="w-full max-w-md bg-gray-800 p-8 rounded-lg shadow-lg">
+    <div className="mx-auto w-full max-w-md">
+      <div className="rounded-md bg-gray-800 p-5 shadow-lg">
         <h1 className="text-2xl font-bold text-white mb-4">Profile</h1>
 
         <div className="space-y-2 mb-6">
@@ -65,6 +79,21 @@ export default function ProfilePage() {
           ) : (
             <p className="text-gray-300">No managed profiles yet.</p>
           )}
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-3">
+          <button
+            onClick={() => router.push('/admin')}
+            className="w-full rounded-md bg-gray-700 p-3 font-medium text-white hover:bg-gray-600"
+          >
+            Admin
+          </button>
+          <button
+            onClick={handleLogout}
+            className="w-full rounded-md bg-gray-700 p-3 font-medium text-white hover:bg-gray-600"
+          >
+            Logout
+          </button>
         </div>
       </div>
     </div>

@@ -20,5 +20,11 @@ export default async function AppUsersPage() {
     .eq('auth_user_id', data.user.id)
     .maybeSingle()
     
-  return <ProfileManager userId={appUser?.id ?? data.user.id} fallbackUserId={data.user.id} />
+  return (
+    <ProfileManager
+      userId={appUser?.id ?? data.user.id}
+      fallbackUserId={data.user.id}
+      canCreateProfile={Boolean(appUser)}
+    />
+  )
 }

@@ -17,8 +17,12 @@ const Rewards = () => {
     const loadProfiles = async () => {
       try {
         const fetchedProfiles = await fetchManagedProfiles()
+        const profileId = new URLSearchParams(window.location.search).get('profileId')
+        const initialProfile = profileId
+          ? fetchedProfiles.find((profile) => profile.id === profileId)
+          : null
         setProfiles(fetchedProfiles)
-        setSelectedProfileId(fetchedProfiles[0]?.id ?? '')
+        setSelectedProfileId(initialProfile?.id ?? fetchedProfiles[0]?.id ?? '')
       } catch (error) {
         toast.error('Failed to load profiles')
         console.error(error)
@@ -72,15 +76,37 @@ const Rewards = () => {
     )
   )
 
+  const renderRewardCards = (rewards: EarnedReward[], status: 'Unclaimed' | 'Claimed') => (
+    rewards.length > 0 ? (
+      <div className="space-y-3">
+        {rewards.map((reward) => (
+          <div key={`${reward.profile_id}-${reward.reward_id}`} className="rounded-md bg-gray-800 p-4 shadow-md">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-white">{reward.rewards.name}</h3>
+                <p className="text-sm text-gray-300">{new Date(reward.created_at).toLocaleDateString()}</p>
+              </div>
+              <span className={status === 'Claimed' ? 'shrink-0 text-sm text-green-400' : 'shrink-0 text-sm text-yellow-300'}>
+                {status}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div className="rounded-md bg-gray-800 p-4 text-gray-300">No rewards found.</div>
+    )
+  )
+
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
-      <div className="w-full max-w-4xl bg-gray-800 p-8 rounded-lg shadow-lg">
-        <div className="bg-gray-700 p-4 rounded-md shadow-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
+      <div className="rounded-md bg-gray-800 p-4 shadow-lg sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-bold text-white">Rewards</h1>
           <select
             value={selectedProfileId}
             onChange={(event) => setSelectedProfileId(event.target.value)}
-            className="bg-gray-600 text-white p-2 rounded-md"
+            className="rounded-md bg-gray-700 p-3 text-white"
           >
             {profiles.map((profile) => (
               <option key={profile.id} value={profile.id}>{profile.name}</option>
@@ -92,9 +118,10 @@ const Rewards = () => {
           <p className="text-gray-300">Loading...</p>
         ) : (
           <>
-            <div className="mb-8">
+            <section className="mt-6">
               <h2 className="text-2xl font-bold mb-4 text-white">Unclaimed Rewards</h2>
-              <table className="w-full bg-gray-700 rounded-lg shadow-md overflow-hidden">
+              <div className="sm:hidden">{renderRewardCards(unclaimedRewards, 'Unclaimed')}</div>
+              <table className="hidden w-full overflow-hidden rounded-md bg-gray-800 text-left shadow-md sm:table">
                 <thead>
                   <tr className="bg-gray-600 text-left text-white">
                     <th className="py-2 px-4">Reward</th>
@@ -104,11 +131,12 @@ const Rewards = () => {
                 </thead>
                 <tbody>{renderRewardRows(unclaimedRewards, 'Unclaimed')}</tbody>
               </table>
-            </div>
+            </section>
 
-            <div>
+            <section className="mt-6">
               <h2 className="text-2xl font-bold mb-4 text-white">Claimed Rewards</h2>
-              <table className="w-full bg-gray-700 rounded-lg shadow-md overflow-hidden">
+              <div className="sm:hidden">{renderRewardCards(claimedRewards, 'Claimed')}</div>
+              <table className="hidden w-full overflow-hidden rounded-md bg-gray-800 text-left shadow-md sm:table">
                 <thead>
                   <tr className="bg-gray-600 text-left text-white">
                     <th className="py-2 px-4">Reward</th>
@@ -118,7 +146,7 @@ const Rewards = () => {
                 </thead>
                 <tbody>{renderRewardRows(claimedRewards, 'Claimed')}</tbody>
               </table>
-            </div>
+            </section>
           </>
         )}
       </div>

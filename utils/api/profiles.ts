@@ -2,6 +2,16 @@ import { createClient } from '@/utils/supabase/client';
 import { ManagedProfile, RecentTask, EarnedReward } from '@/types/app';
 import { getCurrentAppUserIdentity } from '@/utils/api/appUsers';
 
+type RecentTaskRow = {
+  id: string;
+  timestamp: string;
+  bonus_xp: number | null;
+  actions: {
+    name: string;
+    base_xp: number;
+  } | null;
+};
+
 export const fetchManagedProfiles = async (appUserIds?: string | string[]) => {
   const supabase = createClient();
   const ids = appUserIds
@@ -58,16 +68,14 @@ export const fetchRecentTasks = async (profileId: string, limit = 5): Promise<Re
     .limit(limit);
 
   if (error) throw error;
-  return data.map(task => ({
+  return (data as unknown as RecentTaskRow[]).map(task => ({
     id: task.id,
     actions: {
-      // @ts-expect-error It works
-      name: task.actions.name,
+      name: task.actions?.name ?? 'Unknown action',
     },
-    // @ts-expect-error It works
-    base_xp: task.actions.base_xp,
-  bonus_xp: task.bonus_xp,
-  timestamp: task.timestamp
+    base_xp: task.actions?.base_xp ?? 0,
+    bonus_xp: task.bonus_xp ?? undefined,
+    timestamp: task.timestamp
   })) as RecentTask[];
 };
 

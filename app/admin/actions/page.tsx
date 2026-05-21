@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { fetchActions, createAction, updateAction, deleteAction } from '@/utils/api/actions';
 import { Action } from '@/types/app';
-import { getCurrentAppUserIdentity } from '@/utils/api/appUsers';
+import { getCurrentAppUserIdentity, requireCurrentAppUserIdentity } from '@/utils/api/appUsers';
 
 const ManageActionsPage = () => {
   const [actions, setActions] = useState<Action[]>([]);
@@ -14,12 +14,7 @@ const ManageActionsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    loadActions();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadActions = async () => {
+  const loadActions = useCallback(async () => {
     try {
       const identity = await getCurrentAppUserIdentity();
       if (identity) {
@@ -30,14 +25,18 @@ const ManageActionsPage = () => {
       toast.error('Failed to load actions');
       console.error(error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadActions();
+  }, [loadActions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const identity = await getCurrentAppUserIdentity();
+      const identity = await requireCurrentAppUserIdentity();
       if (identity) {
         if (editingAction) {
           const updatedAction = await updateAction(editingAction.id, { ...actionForm, app_user_id: identity.appUserId });
@@ -90,7 +89,7 @@ const ManageActionsPage = () => {
             onClick={() => router.back()}
             className="text-gray-300 hover:text-white mr-4"
           >
-            ← Back
+            &larr; Back
           </button>
           <h1 className="text-3xl font-bold text-white">Manage Actions</h1>
         </div>
@@ -149,7 +148,36 @@ const ManageActionsPage = () => {
           </div>
         </form>
 
-        <div className="overflow-x-auto">
+        <div className="space-y-3 sm:hidden">
+          {actions.map((action) => (
+            <div key={action.id} className="rounded-md bg-gray-700 p-4">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold text-white">{action.name}</h2>
+                  <p className="text-sm text-gray-300">{action.description || 'No description'}</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-blue-200 px-2 py-1 text-xs text-blue-800">{action.base_xp} XP</span>
+              </div>
+              <p className="mb-3 text-sm text-gray-300">Frequency: {action.frequency || 'None'}</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleEdit(action)}
+                  className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(action.id)}
+                  className="flex-1 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-left text-gray-300">
             <thead className="text-xs uppercase bg-gray-700">
               <tr>
