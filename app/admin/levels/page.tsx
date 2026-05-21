@@ -10,12 +10,11 @@ const ManageLevelsPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ levelName, xpNeeded });
-    // Placeholder: In a real app, this would save the data
-    alert(`Level created: ${levelName}, XP Needed: ${xpNeeded}`);
+    setLevelName('');
+    setXpNeeded('');
   };
 
-  // Placeholder data for existing levels
+  // Static defaults mirrored from the current level scale.
   const placeholderLevels = [
     { level: 0, xpRequired: 0, cumulativeXP: 0 },
     { level: 1, xpRequired: 100, cumulativeXP: 100 },

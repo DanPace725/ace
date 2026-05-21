@@ -15,18 +15,29 @@ export async function GET() {
       .from('app_users')
       .select('*')
       .eq('auth_user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (appUserError) throw appUserError;
+    if (appUserError) {
+      console.warn('Could not load app user record; falling back to auth user id.', appUserError);
+    }
 
-    const { data: managedProfiles, error: profilesError } = await supabase
+    const appUserId = appUser?.id ?? user.id;
+    const lookupIds = Array.from(new Set([appUserId, user.id]));
+
+    const profilesQuery = supabase
       .from('managed_profiles')
-      .select('*')
-      .eq('app_user_id', appUser.id);
+      .select('*');
+
+    const { data: managedProfiles, error: profilesError } = lookupIds.length > 1
+      ? await profilesQuery.in('app_user_id', lookupIds)
+      : await profilesQuery.eq('app_user_id', lookupIds[0]);
 
     if (profilesError) throw profilesError;
 
-    return NextResponse.json({ appUser, managedProfiles });
+    return NextResponse.json({
+      appUser: appUser ?? { id: user.id, auth_user_id: user.id },
+      managedProfiles,
+    });
   } catch (error) {
     console.error('Error in GET:', error);
     
@@ -38,37 +49,9 @@ export async function GET() {
   }
 }
 
-export async function PUT(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies });
-
-  try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) throw userError;
-    if (!user) throw new Error('No user found');
-
-    const updates = await request.json();
-
-    // Remove any fields that shouldn't be updated directly
-    delete updates.id;
-    delete updates.auth_user_id;
-    delete updates.created_at;
-
-    const { data, error } = await supabase
-      .from('app_users')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('auth_user_id', user.id)
-      .select();
-
-    if (error) throw error;
-
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Error in PUT:', error);
-    if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    } else {
-      return NextResponse.json({ error: 'An unknown error occurred' }, { status: 500 });
-    }
-  }
+export async function PUT() {
+  return NextResponse.json(
+    { error: 'Profile editing is not supported for app user records.' },
+    { status: 405 }
+  );
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-toastify'
 import { createManagedProfile, fetchManagedProfiles, updateManagedProfile, deleteManagedProfile } from '@/utils/api/users'
@@ -8,28 +8,31 @@ import { ManagedProfile } from '@/types/app'
 
 interface ProfileManagerProps {
   userId: string
+  fallbackUserId?: string
 }
 
-const ProfileManager = ({ userId }: ProfileManagerProps) => {
+const ProfileManager = ({ userId, fallbackUserId }: ProfileManagerProps) => {
   const [name, setName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [profiles, setProfiles] = useState<ManagedProfile[]>([])
   const [editingProfile, setEditingProfile] = useState<string | null>(null)
   const router = useRouter()
 
-  useEffect(() => {
-    loadProfiles()
-  }, [userId])
-
-  const loadProfiles = async () => {
+  const loadProfiles = useCallback(async () => {
     try {
-      const fetchedProfiles = await fetchManagedProfiles(userId)
+      const fetchedProfiles = await fetchManagedProfiles(
+        fallbackUserId ? [userId, fallbackUserId] : userId
+      )
       setProfiles(fetchedProfiles)
     } catch (error) {
       toast.error('Failed to load profiles')
       console.error(error)
     }
-  }
+  }, [fallbackUserId, userId])
+
+  useEffect(() => {
+    loadProfiles()
+  }, [loadProfiles])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

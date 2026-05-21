@@ -1,4 +1,5 @@
 import { User } from '@supabase/supabase-js'
+import { ManagedProfile } from '@/types/app'
 
 interface AuthResponse {
   user: User | null
@@ -6,11 +7,15 @@ interface AuthResponse {
   error?: string
 }
 export interface UserProfile {
-    username: string;
-    role: string;
-    xp: number;
-    level: number;
+  appUser: {
+    id: string
+    auth_user_id?: string
+    auth_id?: string
+    created_at?: string | null
+    updated_at?: string | null
   }
+  managedProfiles: ManagedProfile[]
+}
   
 
 export async function signUp(email: string, password: string): Promise<AuthResponse> {

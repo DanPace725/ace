@@ -1,128 +1,71 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { getUserProfile, updateUserProfile, UserProfile } from '@/utils/api/auth'
-import { toast, ToastContainer } from 'react-toastify'
+import { useEffect, useState } from 'react'
+import { getUserProfile, UserProfile } from '@/utils/api/auth'
+import { toast } from 'react-toastify'
 
-
-interface User {
-    username: string;
-    role: string;
-    xp: number;
-    level: number;
-  }
-
-  interface ApiResponse {
-    user: User | null;
-    error?: string;
-  }
-  
-  export default function ProfilePage() {
-    const [user, setUser] = useState<UserProfile | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const [isEditing, setIsEditing] = useState(false)
-    const [updatedUser, setUpdatedUser] = useState<User | null>(null)
+export default function ProfilePage() {
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    const fetchUserProfile = async () => {
+      setIsLoading(true)
+      try {
+        const { user, error } = await getUserProfile()
+        if (error) {
+          toast.error(error)
+        } else if (user) {
+          setProfile(user)
+        } else {
+          toast.error('No user data available')
+        }
+      } catch {
+        toast.error('Failed to fetch user data')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
     fetchUserProfile()
   }, [])
-
-  const fetchUserProfile = async () => {
-    setIsLoading(true)
-    try{
-        const { user, error }: ApiResponse = await getUserProfile()
-        if (error) {
-            toast.error(error)
-        } else if (user) {
-        setUser(user)
-        setUpdatedUser(user)
-    } else {
-        toast.error('No user data available')
-    } 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-} catch (error) {
-    toast.error('Failed to fetch user data')
-}
-    setIsLoading(false)
-  }
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!updatedUser) return
-    setIsLoading(true)
-    const { user: updatedUserData, error }: ApiResponse = await updateUserProfile({username: updatedUser.username})
-    if (error) {
-      toast.error(error)
-    } else {
-      setUser(updatedUserData)
-      setIsEditing(false)
-      toast.success('Profile updated successfully')
-    }
-    setIsLoading(false)
-  }
 
   if (isLoading) {
     return <div className="text-white">Loading...</div>
   }
-  if (!user) {
+
+  if (!profile) {
     return <div className="text-white">No user data available.</div>
   }
+
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
       <div className="w-full max-w-md bg-gray-800 p-8 rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold text-white mb-4">User Profile</h1>
-        {isEditing && updatedUser ? (
-          <form onSubmit={handleUpdate}>
-            <div className="mb-4">
-              <label className="block text-gray-300 mb-2" htmlFor="username">Username</label>
-              <input
-                type="text"
-                id="username"
-                value={updatedUser.username}
-                onChange={(e) => setUpdatedUser({ ...updatedUser, username: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 text-white rounded"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-300 mb-2" htmlFor="email">Email</label>
-              <input
-                type="role"
-                id="role"
-                value={updatedUser.role}
-                onChange={(e) => setUpdatedUser({ ...updatedUser, role: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 text-white rounded"
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Updating...' : 'Update Profile'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="ml-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-            >
-              Cancel
-            </button>
-          </form>
-        ) :  (
-          <div>
-            <p className="text-white mb-2">Username: {user.username}</p>
-            <p className="text-white mb-2">Role: {user.role}</p>
-            <p className="text-white mb-2">XP: {user.xp}</p>
-            <p className="text-white mb-4">Level: {user.level}</p>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Edit Profile
-            </button>
-          </div>
-        )}
+        <h1 className="text-2xl font-bold text-white mb-4">Profile</h1>
+
+        <div className="space-y-2 mb-6">
+          <p className="text-white">
+            Account ID: <span className="text-gray-300 break-all">{profile.appUser.id}</span>
+          </p>
+          <p className="text-white">
+            Managed Profiles: <span className="text-gray-300">{profile.managedProfiles.length}</span>
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {profile.managedProfiles.length > 0 ? (
+            profile.managedProfiles.map((managedProfile) => (
+              <div key={managedProfile.id} className="bg-gray-700 rounded-md p-3">
+                <p className="font-medium text-white">{managedProfile.name}</p>
+                <p className="text-sm text-gray-300">
+                  Level {managedProfile.level ?? 1} - {managedProfile.xp ?? 0} XP
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-300">No managed profiles yet.</p>
+          )}
+        </div>
       </div>
     </div>
   )

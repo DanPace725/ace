@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { createClient } from '@/utils/supabase/client';
 import { fetchActions, createAction, updateAction, deleteAction } from '@/utils/api/actions';
 import { Action } from '@/types/app';
+import { getCurrentAppUserIdentity } from '@/utils/api/appUsers';
 
 const ManageActionsPage = () => {
   const [actions, setActions] = useState<Action[]>([]);
@@ -13,7 +13,6 @@ const ManageActionsPage = () => {
   const [editingAction, setEditingAction] = useState<Action | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     loadActions();
@@ -22,9 +21,9 @@ const ManageActionsPage = () => {
 
   const loadActions = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const fetchedActions = await fetchActions(user.id);
+      const identity = await getCurrentAppUserIdentity();
+      if (identity) {
+        const fetchedActions = await fetchActions(identity.lookupIds);
         setActions(fetchedActions);
       }
     } catch (error) {
@@ -38,15 +37,15 @@ const ManageActionsPage = () => {
     setIsLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      const identity = await getCurrentAppUserIdentity();
+      if (identity) {
         if (editingAction) {
-          const updatedAction = await updateAction(editingAction.id, { ...actionForm, app_user_id: user.id });
+          const updatedAction = await updateAction(editingAction.id, { ...actionForm, app_user_id: identity.appUserId });
           setActions(actions.map(a => a.id === editingAction.id ? updatedAction : a));
           setEditingAction(null);
           toast.success('Action updated successfully');
         } else {
-          const createdAction = await createAction({ ...actionForm, app_user_id: user.id });
+          const createdAction = await createAction({ ...actionForm, app_user_id: identity.appUserId });
           setActions([createdAction, ...actions]);
           toast.success('Action created successfully');
         }

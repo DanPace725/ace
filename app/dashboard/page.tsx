@@ -1,14 +1,14 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
-import { createClient } from '@/utils/supabase/client';
 import { fetchManagedProfiles, fetchProfileData, fetchRecentTasks, fetchEarnedRewards, updateProfileLevel } from '@/utils/api/profiles';
 import { fetchLevelData } from '@/utils/api/levels';
 import { fetchLevelReward, earnReward } from '@/utils/api/rewards';
 import { ManagedProfile, RecentTask, EarnedReward } from '@/types/app';
 import { toast } from 'react-toastify';
+import { getCurrentAppUserIdentity } from '@/utils/api/appUsers';
 
 const Dashboard = () => {
   const router = useRouter();
@@ -21,10 +21,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     const loadProfiles = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const fetchedProfiles = await fetchManagedProfiles();
+      const identity = await getCurrentAppUserIdentity();
+      if (identity) {
+        const fetchedProfiles = await fetchManagedProfiles(identity.lookupIds);
         setProfiles(fetchedProfiles);
         if (fetchedProfiles.length > 0) {
           setSelectedProfile(fetchedProfiles[0]);
@@ -34,20 +33,20 @@ const Dashboard = () => {
     loadProfiles();
   }, []);
 
-  useEffect(() => {
-    const loadProfileData = async () => {
-      if (selectedProfile) {
-        const tasks = await fetchRecentTasks(selectedProfile.id);
-        const rewards = await fetchEarnedRewards(selectedProfile.id);
-        setRecentTasks(tasks as RecentTask[]);
-        setEarnedRewards(rewards as EarnedReward[]);
-        await updateLevelData(selectedProfile.id, selectedProfile.level, selectedProfile.xp);
+  const distributeLevelReward = useCallback(async (profileId: string, level: number) => {
+    try {
+      const levelReward = await fetchLevelReward(level);
+      if (levelReward) {
+        await earnReward(profileId, levelReward.id);
+        toast.success(`You've earned a new reward for reaching level ${level}!`);
       }
-    };
-    loadProfileData();
-  }, [selectedProfile]);
+    } catch (error) {
+      console.error('Failed to distribute level reward:', error);
+      toast.error('Failed to distribute level reward');
+    }
+  }, []);
 
-  const updateLevelData = async (profileId: string, currentLevel: number, currentXP: number) => {
+  const updateLevelData = useCallback(async (profileId: string, currentLevel: number, currentXP: number) => {
     const levelData = await fetchLevelData(currentLevel);
     if (levelData && levelData.length > 0) {
       setCurrentLevelXP(levelData[0].cumulative_xp || 0);
@@ -66,20 +65,20 @@ const Dashboard = () => {
         await updateLevelData(profileId, newLevel, currentXP);
       }
     }
-  };
-  
-  const distributeLevelReward = async (profileId: string, level: number) => {
-    try {
-      const levelReward = await fetchLevelReward(level);
-      if (levelReward) {
-        await earnReward(profileId, levelReward.id);
-        toast.success(`You've earned a new reward for reaching level ${level}!`);
+  }, [distributeLevelReward]);
+
+  useEffect(() => {
+    const loadProfileData = async () => {
+      if (selectedProfile) {
+        const tasks = await fetchRecentTasks(selectedProfile.id);
+        const rewards = await fetchEarnedRewards(selectedProfile.id);
+        setRecentTasks(tasks as RecentTask[]);
+        setEarnedRewards(rewards as EarnedReward[]);
+        await updateLevelData(selectedProfile.id, selectedProfile.level, selectedProfile.xp);
       }
-    } catch (error) {
-      console.error('Failed to distribute level reward:', error);
-      toast.error('Failed to distribute level reward');
-    }
-  };
+    };
+    loadProfileData();
+  }, [selectedProfile, updateLevelData]);
   
  
   

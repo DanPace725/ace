@@ -4,13 +4,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
 import { fetchActions } from '@/utils/api/actions';
 import { createActionLog } from '@/utils/api/actionLogs';
 import { fetchManagedProfiles, updateProfileXP } from '@/utils/api/profiles';
-import { earnReward } from '@/utils/api/rewards';
+import { earnReward, fetchRewards } from '@/utils/api/rewards';
 import { Action, ManagedProfile } from '@/types/app';
 import { toast } from 'react-toastify';
+import { getCurrentAppUserIdentity } from '@/utils/api/appUsers';
 
 const LogTaskPage = () => {
   const [actions, setActions] = useState<Action[]>([]);
@@ -21,7 +21,6 @@ const LogTaskPage = () => {
   const [profiles, setProfiles] = useState<ManagedProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<ManagedProfile | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     loadProfilesAndActions();
@@ -40,13 +39,13 @@ const LogTaskPage = () => {
 
   const loadProfilesAndActions = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const fetchedProfiles = await fetchManagedProfiles();
+      const identity = await getCurrentAppUserIdentity();
+      if (identity) {
+        const fetchedProfiles = await fetchManagedProfiles(identity.lookupIds);
         setProfiles(fetchedProfiles);
         if (fetchedProfiles.length > 0) {
           setSelectedProfile(fetchedProfiles[0]);
-          const fetchedActions = await fetchActions(user.id);
+          const fetchedActions = await fetchActions(identity.lookupIds);
           setActions(fetchedActions);
         }
       }
@@ -103,13 +102,7 @@ const LogTaskPage = () => {
     try {
       const chance = Math.random();
       if (chance <= 0.1) { // 10% chance of getting a random reward
-        // Fetch all rewards from the rewards table
-        const { data: availableRewards, error } = await supabase
-          .from('rewards')
-          .select('*');
-  
-        if (error) throw error;
-  
+        const availableRewards = await fetchRewards();
         if (availableRewards && availableRewards.length > 0) {
           // Randomly select a reward from the list
           const randomReward = availableRewards[Math.floor(Math.random() * availableRewards.length)];

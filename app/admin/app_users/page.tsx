@@ -13,6 +13,12 @@ export default async function AppUsersPage() {
     redirect('/login')
 
   }
+
+  const { data: appUser } = await supabase
+    .from('app_users')
+    .select('id')
+    .eq('auth_user_id', data.user.id)
+    .maybeSingle()
     
-  return <ProfileManager userId={data.user.id} />
+  return <ProfileManager userId={appUser?.id ?? data.user.id} fallbackUserId={data.user.id} />
 }
