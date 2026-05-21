@@ -29,13 +29,8 @@ const ManageLevelsPage = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
       <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-lg">
-        <div className="flex items-center mb-6">
-          <button
-            onClick={() => router.back()}
-            className="text-gray-300 hover:text-white mr-4"
-          >
-            &larr;
-          </button>
+        <div className="mb-6">
+          <p className="text-sm text-gray-400">Admin tools</p>
           <h1 className="text-3xl font-bold text-white">Levels</h1>
         </div>
 
@@ -69,6 +64,14 @@ const ManageLevelsPage = () => {
             </table>
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={() => router.push('/admin')}
+          className="mt-6 w-full rounded-md bg-gray-700 p-3 font-medium text-white transition hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+        >
+          Back to Admin
+        </button>
       </div>
     </div>
   )

@@ -76,13 +76,8 @@ const ManageRewardsPage = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
       <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-lg">
-        <div className="flex items-center mb-6">
-          <button
-            onClick={() => router.back()}
-            className="text-gray-300 hover:text-white mr-4"
-          >
-            &larr;
-          </button>
+        <div className="mb-6">
+          <p className="text-sm text-gray-400">Admin tools</p>
           <h1 className="text-3xl font-bold text-white">Manage Rewards</h1>
         </div>
         
@@ -119,12 +114,29 @@ const ManageRewardsPage = () => {
             onChange={(e) => setLevel(e.target.value)}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-          >
-            {editingReward ? 'Update Reward' : 'Submit'}
-          </button>
+          <div className="flex gap-3">
+            {editingReward && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingReward(null);
+                  setRewardName('');
+                  setType('');
+                  setCost('');
+                  setLevel('');
+                }}
+                className="w-full bg-gray-600 text-white p-2 rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-200"
+              >
+                Discard
+              </button>
+            )}
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+            >
+              {editingReward ? 'Update Reward' : 'Create Reward'}
+            </button>
+          </div>
         </form>
 
         <div className="space-y-3 sm:hidden">
@@ -193,6 +205,14 @@ const ManageRewardsPage = () => {
             </tbody>
           </table>
         </div>
+
+        <button
+          type="button"
+          onClick={() => router.push('/admin')}
+          className="mt-6 w-full rounded-md bg-gray-700 p-3 font-medium text-white transition hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+        >
+          Back to Admin
+        </button>
       </div>
     </div>
   );

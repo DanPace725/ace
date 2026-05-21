@@ -202,10 +202,10 @@ const LogTaskPage = () => {
           </button>
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => router.push(selectedProfile ? `/dashboard?profileId=${selectedProfile.id}` : '/dashboard')}
             className="w-full rounded-md bg-gray-700 p-3 font-medium text-white transition hover:bg-gray-600"
           >
-            Cancel
+            Dashboard
           </button>
         </div>
       </form>

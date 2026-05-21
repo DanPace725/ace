@@ -108,10 +108,10 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
           <div className="flex space-x-4">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => router.push('/admin')}
               className="flex-1 bg-gray-600 text-white p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-200"
             >
-              Cancel
+              Back to Admin
             </button>
             <button
               type="submit"
@@ -146,7 +146,7 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
                       onClick={() => setEditingProfile(null)}
                       className="bg-gray-500 text-white px-2 py-1 rounded-md hover:bg-gray-600"
                     >
-                      Cancel
+                      Discard
                     </button>
                   </div>
                 ) : (
