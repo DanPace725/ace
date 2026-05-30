@@ -6,13 +6,21 @@ import { toast } from 'react-toastify';
 import { fetchRewards, createReward, updateReward, deleteReward } from '@/utils/api/rewards';
 import { Reward } from '@/types/app';
 
+type RewardFormState = {
+  name: string;
+  type: string;
+  cost: string;
+  level: string;
+};
+
+const emptyRewardForm: RewardFormState = { name: '', type: '', cost: '', level: '' };
+
 const ManageRewardsPage = () => {
-  const [rewardName, setRewardName] = useState('');
-  const [type, setType] = useState('');
-  const [cost, setCost] = useState('');
-  const [level, setLevel] = useState('');
+  const [rewardForm, setRewardForm] = useState<RewardFormState>(emptyRewardForm);
+  const [editForm, setEditForm] = useState<RewardFormState>(emptyRewardForm);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -31,33 +39,63 @@ const ManageRewardsPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+
     try {
-      if (editingReward) {
-        const updated = await updateReward(editingReward.id, { name: rewardName, type, cost, description: level });
-        setRewards(rewards.map(r => r.id === editingReward.id ? updated : r));
-        setEditingReward(null);
-        toast.success('Reward updated successfully');
-      } else {
-        const newReward = await createReward({ name: rewardName, type, cost, description: level });
-        setRewards([...rewards, newReward]);
-        toast.success('Reward created successfully');
-      }
-      setRewardName('');
-      setType('');
-      setCost('');
-      setLevel('');
+      const newReward = await createReward({
+        name: rewardForm.name,
+        type: rewardForm.type,
+        cost: rewardForm.cost,
+        description: rewardForm.level,
+      });
+      setRewards([...rewards, newReward]);
+      setRewardForm(emptyRewardForm);
+      toast.success('Reward created successfully');
     } catch (error: unknown) {
       toast.error('Failed to save reward');
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleEdit = (reward: Reward) => {
     setEditingReward(reward);
-    setRewardName(reward.name);
-    setType(reward.type);
-    setCost(reward.cost ?? '');
-    setLevel(reward.description ?? '');
+    setEditForm({
+      name: reward.name,
+      type: reward.type,
+      cost: reward.cost ?? '',
+      level: reward.description ?? '',
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditingReward(null);
+    setEditForm(emptyRewardForm);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingReward) return;
+
+    setIsLoading(true);
+
+    try {
+      const updated = await updateReward(editingReward.id, {
+        name: editForm.name,
+        type: editForm.type,
+        cost: editForm.cost,
+        description: editForm.level,
+      });
+      setRewards(rewards.map(r => r.id === editingReward.id ? updated : r));
+      closeEditModal();
+      toast.success('Reward updated successfully');
+    } catch (error: unknown) {
+      toast.error('Failed to update reward');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDelete = async (rewardId: string) => {
@@ -94,14 +132,14 @@ const ManageRewardsPage = () => {
           <input
             type="text"
             placeholder="Reward Name"
-            value={rewardName}
-            onChange={(e) => setRewardName(e.target.value)}
+            value={rewardForm.name}
+            onChange={(e) => setRewardForm({ ...rewardForm, name: e.target.value })}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
           <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
+            value={rewardForm.type}
+            onChange={(e) => setRewardForm({ ...rewardForm, type: e.target.value })}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
@@ -112,38 +150,24 @@ const ManageRewardsPage = () => {
           <input
             type="text"
             placeholder="Cost"
-            value={cost}
-            onChange={(e) => setCost(e.target.value)}
+            value={rewardForm.cost}
+            onChange={(e) => setRewardForm({ ...rewardForm, cost: e.target.value })}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             type="text"
             placeholder="Level"
-            value={level}
-            onChange={(e) => setLevel(e.target.value)}
+            value={rewardForm.level}
+            onChange={(e) => setRewardForm({ ...rewardForm, level: e.target.value })}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <div className="flex gap-3">
-            {editingReward && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingReward(null);
-                  setRewardName('');
-                  setType('');
-                  setCost('');
-                  setLevel('');
-                }}
-                className="w-full bg-gray-600 text-white p-2 rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-200"
-              >
-                Discard
-              </button>
-            )}
+          <div className="flex">
             <button
               type="submit"
               className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+              disabled={isLoading}
             >
-              {editingReward ? 'Update Reward' : 'Create Reward'}
+              {isLoading ? 'Saving...' : 'Create Reward'}
             </button>
           </div>
         </form>
@@ -214,6 +238,74 @@ const ManageRewardsPage = () => {
             </tbody>
           </table>
         </div>
+
+        {editingReward && (
+          <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-4 sm:items-center sm:justify-center">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-reward-title"
+              className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-md bg-gray-800 p-5 shadow-xl"
+            >
+              <div className="mb-5">
+                <p className="text-sm text-gray-400">Edit reward</p>
+                <h2 id="edit-reward-title" className="text-2xl font-bold text-white">{editingReward.name}</h2>
+              </div>
+
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Reward Name"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full rounded-md bg-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <select
+                  value={editForm.type}
+                  onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
+                  className="w-full rounded-md bg-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select Type</option>
+                  <option value="Level">Level</option>
+                  <option value="Random">Random</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Cost"
+                  value={editForm.cost}
+                  onChange={(e) => setEditForm({ ...editForm, cost: e.target.value })}
+                  className="w-full rounded-md bg-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Level"
+                  value={editForm.level}
+                  onChange={(e) => setEditForm({ ...editForm, level: e.target.value })}
+                  className="w-full rounded-md bg-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={closeEditModal}
+                    className="rounded-md bg-gray-600 p-3 font-medium text-white transition hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-md bg-blue-600 p-3 font-medium text-white transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-600"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
