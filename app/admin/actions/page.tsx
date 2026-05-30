@@ -7,9 +7,19 @@ import { fetchActions, createAction, updateAction, deleteAction } from '@/utils/
 import { Action } from '@/types/app';
 import { getCurrentAppUserIdentity, requireCurrentAppUserIdentity } from '@/utils/api/appUsers';
 
+type ActionFormState = {
+  name: string;
+  description: string;
+  base_xp: number;
+  frequency: string;
+};
+
+const emptyActionForm: ActionFormState = { name: '', description: '', base_xp: 0, frequency: '' };
+
 const ManageActionsPage = () => {
   const [actions, setActions] = useState<Action[]>([]);
-  const [actionForm, setActionForm] = useState({ name: '', description: '', base_xp: 0, frequency: '' });
+  const [actionForm, setActionForm] = useState<ActionFormState>(emptyActionForm);
+  const [editForm, setEditForm] = useState<ActionFormState>(emptyActionForm);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -38,17 +48,10 @@ const ManageActionsPage = () => {
     try {
       const identity = await requireCurrentAppUserIdentity();
       if (identity) {
-        if (editingAction) {
-          const updatedAction = await updateAction(editingAction.id, { ...actionForm, app_user_id: identity.appUserId });
-          setActions(actions.map(a => a.id === editingAction.id ? updatedAction : a));
-          setEditingAction(null);
-          toast.success('Action updated successfully');
-        } else {
-          const createdAction = await createAction({ ...actionForm, app_user_id: identity.appUserId });
-          setActions([createdAction, ...actions]);
-          toast.success('Action created successfully');
-        }
-        setActionForm({ name: '', description: '', base_xp: 0, frequency: '' });
+        const createdAction = await createAction({ ...actionForm, app_user_id: identity.appUserId });
+        setActions([createdAction, ...actions]);
+        setActionForm(emptyActionForm);
+        toast.success('Action created successfully');
       }
     } catch (error) {
       toast.error('Failed to save action');
@@ -60,12 +63,37 @@ const ManageActionsPage = () => {
 
   const handleEdit = (action: Action) => {
     setEditingAction(action);
-    setActionForm({
+    setEditForm({
       name: action.name,
       description: action.description,
       base_xp: action.base_xp,
       frequency: action.frequency,
     });
+  };
+
+  const closeEditModal = () => {
+    setEditingAction(null);
+    setEditForm(emptyActionForm);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAction) return;
+
+    setIsLoading(true);
+
+    try {
+      const identity = await requireCurrentAppUserIdentity();
+      const updatedAction = await updateAction(editingAction.id, { ...editForm, app_user_id: identity.appUserId });
+      setActions(actions.map(a => a.id === editingAction.id ? updatedAction : a));
+      closeEditModal();
+      toast.success('Action updated successfully');
+    } catch (error) {
+      toast.error('Failed to update action');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDelete = async (actionId: string) => {
@@ -84,9 +112,18 @@ const ManageActionsPage = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
       <div className="w-full max-w-4xl bg-gray-800 p-8 rounded-lg shadow-lg">
-        <div className="mb-6">
-          <p className="text-sm text-gray-400">Admin tools</p>
-          <h1 className="text-3xl font-bold text-white">Manage Actions</h1>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-400">Admin tools</p>
+            <h1 className="text-3xl font-bold text-white">Manage Actions</h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push('/admin')}
+            className="w-full rounded-md bg-gray-700 px-4 py-3 font-medium text-white transition hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 sm:w-auto"
+          >
+            Back to Admin
+          </button>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
@@ -109,7 +146,7 @@ const ManageActionsPage = () => {
             type="number"
             placeholder="Base XP"
             value={actionForm.base_xp}
-            onChange={(e) => setActionForm({...actionForm, base_xp: parseInt(e.target.value)})}
+            onChange={(e) => setActionForm({...actionForm, base_xp: Number.parseInt(e.target.value, 10) || 0})}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
@@ -120,25 +157,13 @@ const ManageActionsPage = () => {
             onChange={(e) => setActionForm({...actionForm, frequency: e.target.value})}
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <div className="flex space-x-4">
-            {editingAction && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingAction(null);
-                  setActionForm({ name: '', description: '', base_xp: 0, frequency: '' });
-                }}
-                className="w-full bg-gray-600 text-white p-2 rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-200"
-              >
-                Discard
-              </button>
-            )}
+          <div className="flex">
             <button
               type="submit"
               className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
               disabled={isLoading}
             >
-              {isLoading ? 'Saving...' : editingAction ? 'Update Action' : 'Create Action'}
+              {isLoading ? 'Saving...' : 'Create Action'}
             </button>
           </div>
         </form>
@@ -210,13 +235,71 @@ const ManageActionsPage = () => {
           </table>
         </div>
 
-        <button
-          type="button"
-          onClick={() => router.push('/admin')}
-          className="mt-6 w-full rounded-md bg-gray-700 p-3 font-medium text-white transition hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-        >
-          Back to Admin
-        </button>
+        {editingAction && (
+          <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-4 sm:items-center sm:justify-center">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-action-title"
+              className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-md bg-gray-800 p-5 shadow-xl"
+            >
+              <div className="mb-5">
+                <p className="text-sm text-gray-400">Edit task</p>
+                <h2 id="edit-action-title" className="text-2xl font-bold text-white">{editingAction.name}</h2>
+              </div>
+
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Action Name"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full rounded-md bg-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Description"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full rounded-md bg-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Base XP"
+                  value={editForm.base_xp}
+                  onChange={(e) => setEditForm({ ...editForm, base_xp: Number.parseInt(e.target.value, 10) || 0 })}
+                  className="w-full rounded-md bg-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Frequency"
+                  value={editForm.frequency}
+                  onChange={(e) => setEditForm({ ...editForm, frequency: e.target.value })}
+                  className="w-full rounded-md bg-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={closeEditModal}
+                    className="rounded-md bg-gray-600 p-3 font-medium text-white transition hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-md bg-blue-600 p-3 font-medium text-white transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-600"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

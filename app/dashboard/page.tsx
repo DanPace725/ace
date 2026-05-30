@@ -89,10 +89,23 @@ const Dashboard = () => {
     }
   }, [profiles])
 
+  const selectProfile = async (profileId: string) => {
+    try {
+      const profile = await fetchProfileData(profileId)
+      setSelectedProfile(profile)
+      setProfiles((currentProfiles) =>
+        currentProfiles.map((currentProfile) => (
+          currentProfile.id === profile.id ? profile : currentProfile
+        ))
+      )
+    } catch (error) {
+      toast.error('Failed to load profile')
+      console.error(error)
+    }
+  }
+
   const handleProfileChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const profileId = e.target.value
-    const profile = await fetchProfileData(profileId)
-    setSelectedProfile(profile)
+    await selectProfile(e.target.value)
   }
 
   const handleLogTask = () => {
@@ -131,6 +144,7 @@ const Dashboard = () => {
   }
 
   const xpToNext = Math.max(nextLevelXP - selectedProfile.xp, 0)
+  const maxProfileXP = Math.max(...profiles.map((profile) => profile.xp), 1)
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
@@ -184,6 +198,44 @@ const Dashboard = () => {
           >
             View Rewards
           </button>
+        </div>
+      </section>
+
+      <section className="rounded-md bg-gray-800 p-4 shadow-lg sm:p-6">
+        <div className="mb-4">
+          <p className="text-sm text-gray-400">All profiles</p>
+          <h2 className="text-xl font-bold text-white">XP Progress</h2>
+        </div>
+
+        <div className="space-y-3">
+          {profiles.map((profile) => {
+            const barWidth = Math.max((profile.xp / maxProfileXP) * 100, profile.xp > 0 ? 5 : 0)
+            const isSelected = selectedProfile.id === profile.id
+
+            return (
+              <button
+                key={profile.id}
+                type="button"
+                onClick={() => selectProfile(profile.id)}
+                className={`w-full rounded-md p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  isSelected ? 'bg-gray-700 ring-2 ring-blue-500' : 'bg-gray-900 hover:bg-gray-700'
+                }`}
+                aria-label={`Select ${profile.name}, ${profile.xp} XP`}
+              >
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="truncate font-medium text-white">{profile.name}</span>
+                  <span className="shrink-0 text-sm text-gray-300">{profile.xp} XP</span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-gray-700">
+                  <div
+                    className="h-full rounded-full bg-blue-500"
+                    style={{ width: `${barWidth}%` }}
+                  />
+                </div>
+                <div className="mt-2 text-xs text-gray-400">Level {profile.level}</div>
+              </button>
+            )
+          })}
         </div>
       </section>
 

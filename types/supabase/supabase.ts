@@ -277,6 +277,7 @@ export type Database = {
           level: number | null
           name: string
           parent_profile_id: string | null
+          requires_review: boolean
           updated_at: string | null
           xp: number | null
         }
@@ -287,6 +288,7 @@ export type Database = {
           level?: number | null
           name: string
           parent_profile_id?: string | null
+          requires_review?: boolean
           updated_at?: string | null
           xp?: number | null
         }
@@ -297,6 +299,7 @@ export type Database = {
           level?: number | null
           name?: string
           parent_profile_id?: string | null
+          requires_review?: boolean
           updated_at?: string | null
           xp?: number | null
         }
@@ -306,6 +309,73 @@ export type Database = {
             columns: ["parent_profile_id"]
             isOneToOne: false
             referencedRelation: "managed_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_action_logs: {
+        Row: {
+          action_id: string
+          base_xp: number
+          bonus_xp: number
+          created_at: string | null
+          id: string
+          profile_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          timestamp: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_id: string
+          base_xp?: number
+          bonus_xp?: number
+          created_at?: string | null
+          id?: string
+          profile_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          timestamp?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_id?: string
+          base_xp?: number
+          bonus_xp?: number
+          created_at?: string | null
+          id?: string
+          profile_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          timestamp?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_action_logs_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_action_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "managed_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_action_logs_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
         ]

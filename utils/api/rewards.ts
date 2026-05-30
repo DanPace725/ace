@@ -78,7 +78,7 @@ export const fetchUnclaimedRewards = async (profileId: string): Promise<EarnedRe
     .from('profile_rewards')
     .select('*, rewards(*)')
     .eq('profile_id', profileId)
-    .eq('is_claimed', false);
+    .or('is_claimed.eq.false,is_claimed.is.null');
 
   if (error) throw error;
   return data as EarnedReward[];

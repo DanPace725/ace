@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { fetchActions } from '@/utils/api/actions'
 import { createActionLog } from '@/utils/api/actionLogs'
+import { createPendingActionLog } from '@/utils/api/reviewQueue'
 import { fetchManagedProfiles, updateProfileXP } from '@/utils/api/profiles'
 import { earnReward, fetchRewards } from '@/utils/api/rewards'
 import { Action, ManagedProfile } from '@/types/app'
@@ -99,13 +100,22 @@ const LogTaskPage = () => {
     setIsLoading(true)
 
     try {
-      await createActionLog({
+      const actionLog = {
         profile_id: selectedProfile.id,
         action_id: selectedAction,
         timestamp: date,
         base_xp: selectedActionData.base_xp,
         bonus_xp: parseInt(bonusXP) || 0,
-      })
+      }
+
+      if (selectedProfile.requires_review) {
+        await createPendingActionLog(actionLog)
+        toast.success('Task sent for review')
+        router.push(`/dashboard?profileId=${selectedProfile.id}`)
+        return
+      }
+
+      await createActionLog(actionLog)
       await updateProfileXP(selectedProfile.id)
       await handleRandomReward(selectedProfile.id)
       toast.success('Task logged successfully')
@@ -138,6 +148,11 @@ const LogTaskPage = () => {
               <option key={profile.id} value={profile.id}>{profile.name}</option>
             ))}
           </select>
+          {selectedProfile?.requires_review && (
+            <p className="mt-3 rounded-md bg-yellow-900/40 p-3 text-sm text-yellow-100">
+              Tasks for this profile will be sent to the review queue before XP is awarded.
+            </p>
+          )}
         </div>
 
         <div className="rounded-md bg-gray-800 p-4 shadow-lg">
@@ -198,7 +213,7 @@ const LogTaskPage = () => {
             className="w-full rounded-md bg-blue-600 p-3 font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-600"
             disabled={isLoading || !selectedProfile || !selectedAction}
           >
-            {isLoading ? 'Logging...' : 'Log Task'}
+            {isLoading ? 'Saving...' : selectedProfile?.requires_review ? 'Submit for Review' : 'Log Task'}
           </button>
           <button
             type="button"

@@ -76,9 +76,18 @@ const ManageRewardsPage = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
       <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-lg">
-        <div className="mb-6">
-          <p className="text-sm text-gray-400">Admin tools</p>
-          <h1 className="text-3xl font-bold text-white">Manage Rewards</h1>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-400">Admin tools</p>
+            <h1 className="text-3xl font-bold text-white">Manage Rewards</h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push('/admin')}
+            className="w-full rounded-md bg-gray-700 px-4 py-3 font-medium text-white transition hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 sm:w-auto"
+          >
+            Back to Admin
+          </button>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
@@ -205,14 +214,6 @@ const ManageRewardsPage = () => {
             </tbody>
           </table>
         </div>
-
-        <button
-          type="button"
-          onClick={() => router.push('/admin')}
-          className="mt-6 w-full rounded-md bg-gray-700 p-3 font-medium text-white transition hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-        >
-          Back to Admin
-        </button>
       </div>
     </div>
   );

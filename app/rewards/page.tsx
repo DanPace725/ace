@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { fetchManagedProfiles } from '@/utils/api/profiles'
-import { fetchClaimedRewards, fetchUnclaimedRewards } from '@/utils/api/rewards'
+import { claimReward, fetchClaimedRewards, fetchUnclaimedRewards } from '@/utils/api/rewards'
 import { EarnedReward, ManagedProfile } from '@/types/app'
 import { toast } from 'react-toastify'
 
@@ -12,6 +12,7 @@ const Rewards = () => {
   const [unclaimedRewards, setUnclaimedRewards] = useState<EarnedReward[]>([])
   const [claimedRewards, setClaimedRewards] = useState<EarnedReward[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [claimingRewardKey, setClaimingRewardKey] = useState<string | null>(null)
 
   useEffect(() => {
     const loadProfiles = async () => {
@@ -58,6 +59,34 @@ const Rewards = () => {
     loadRewards()
   }, [selectedProfileId])
 
+  const handleClaimReward = async (reward: EarnedReward) => {
+    const rewardKey = `${reward.profile_id}-${reward.reward_id}`
+    setClaimingRewardKey(rewardKey)
+
+    try {
+      const claimedReward = await claimReward(reward.profile_id, reward.reward_id)
+      const updatedReward = {
+        ...reward,
+        ...claimedReward,
+        is_claimed: true,
+        rewards: claimedReward.rewards ?? reward.rewards,
+      }
+
+      setUnclaimedRewards((currentRewards) =>
+        currentRewards.filter((currentReward) => (
+          currentReward.profile_id !== reward.profile_id || currentReward.reward_id !== reward.reward_id
+        ))
+      )
+      setClaimedRewards((currentRewards) => [updatedReward, ...currentRewards])
+      toast.success('Reward claimed')
+    } catch (error) {
+      toast.error('Failed to claim reward')
+      console.error(error)
+    } finally {
+      setClaimingRewardKey(null)
+    }
+  }
+
   const renderRewardRows = (rewards: EarnedReward[], status: 'Unclaimed' | 'Claimed') => (
     rewards.length > 0 ? (
       rewards.map((reward) => (
@@ -67,11 +96,23 @@ const Rewards = () => {
           <td className="py-2 px-4">
             <span className={status === 'Claimed' ? 'text-green-400' : 'text-yellow-300'}>{status}</span>
           </td>
+          {status === 'Unclaimed' && (
+            <td className="py-2 px-4">
+              <button
+                type="button"
+                onClick={() => handleClaimReward(reward)}
+                disabled={claimingRewardKey === `${reward.profile_id}-${reward.reward_id}`}
+                className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-600"
+              >
+                {claimingRewardKey === `${reward.profile_id}-${reward.reward_id}` ? 'Claiming...' : 'Claim'}
+              </button>
+            </td>
+          )}
         </tr>
       ))
     ) : (
       <tr>
-        <td className="py-3 px-4 text-gray-300" colSpan={3}>No rewards found.</td>
+        <td className="py-3 px-4 text-gray-300" colSpan={status === 'Unclaimed' ? 4 : 3}>No rewards found.</td>
       </tr>
     )
   )
@@ -90,6 +131,16 @@ const Rewards = () => {
                 {status}
               </span>
             </div>
+            {status === 'Unclaimed' && (
+              <button
+                type="button"
+                onClick={() => handleClaimReward(reward)}
+                disabled={claimingRewardKey === `${reward.profile_id}-${reward.reward_id}`}
+                className="mt-4 w-full rounded-md bg-blue-600 p-3 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-600"
+              >
+                {claimingRewardKey === `${reward.profile_id}-${reward.reward_id}` ? 'Claiming...' : 'Claim Reward'}
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -127,6 +178,7 @@ const Rewards = () => {
                     <th className="py-2 px-4">Reward</th>
                     <th className="py-2 px-4">Date</th>
                     <th className="py-2 px-4">Status</th>
+                    <th className="py-2 px-4">Action</th>
                   </tr>
                 </thead>
                 <tbody>{renderRewardRows(unclaimedRewards, 'Unclaimed')}</tbody>
