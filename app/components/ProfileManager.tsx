@@ -189,16 +189,16 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
                     </div>
                     <div>
                       <button
-                        onClick={() => setEditingProfile(profile.id)}
-                        className="text-blue-400 hover:text-blue-500 mr-2"
-                      >
-                        Edit
-                      </button>
-                      <button
                         onClick={() => handleDelete(profile.id)}
-                        className="text-red-400 hover:text-red-500"
+                        className="mr-2 text-red-400 hover:text-red-500"
                       >
                         Delete
+                      </button>
+                      <button
+                        onClick={() => setEditingProfile(profile.id)}
+                        className="text-blue-400 hover:text-blue-500"
+                      >
+                        Edit
                       </button>
                     </div>
                   </div>
