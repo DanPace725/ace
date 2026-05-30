@@ -33,3 +33,19 @@ export const fetchLevelData = async (level: number) => {
 
   return levelData;
 };
+
+export const updateLevel = async (
+  levelNumber: number,
+  updates: Pick<LevelData, 'xp_required' | 'cumulative_xp'>
+): Promise<LevelData> => {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('levels')
+    .update(updates)
+    .eq('level_number', levelNumber)
+    .select('level_number, xp_required, cumulative_xp')
+    .single();
+
+  if (error) throw error;
+  return data as LevelData;
+};

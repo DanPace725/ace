@@ -14,6 +14,7 @@ interface ProfileManagerProps {
 
 const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: ProfileManagerProps) => {
   const [name, setName] = useState('')
+  const [requiresReview, setRequiresReview] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [profiles, setProfiles] = useState<ManagedProfile[]>([])
   const [editingProfile, setEditingProfile] = useState<string | null>(null)
@@ -45,9 +46,10 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
     setIsLoading(true)
 
     try {
-      const newProfile = await createManagedProfile(name, userId)
+      const newProfile = await createManagedProfile(name, userId, requiresReview)
       setProfiles([newProfile, ...profiles])
       setName('')
+      setRequiresReview(false)
       toast.success('Profile created successfully')
     } catch (error) {
       toast.error('Failed to create profile')
@@ -57,10 +59,10 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
     }
   }
 
-  const handleEdit = async (profileId: string, newName: string) => {
+  const handleEdit = async (profileId: string, newName: string, shouldRequireReview: boolean) => {
     try {
-      await updateManagedProfile(profileId, newName)
-      setProfiles(profiles.map(p => p.id === profileId ? { ...p, name: newName } : p))
+      await updateManagedProfile(profileId, newName, shouldRequireReview)
+      setProfiles(profiles.map(p => p.id === profileId ? { ...p, name: newName, requires_review: shouldRequireReview } : p))
       setEditingProfile(null)
       toast.success('Profile updated successfully')
     } catch (error) {
@@ -85,7 +87,16 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 p-4">
       <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-white mb-8">Manage Profiles</h1>
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <h1 className="text-3xl font-bold text-white">Manage Profiles</h1>
+          <button
+            type="button"
+            onClick={() => router.push('/admin')}
+            className="w-full rounded-md bg-gray-600 px-4 py-3 font-medium text-white transition hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 sm:w-auto"
+          >
+            Back to Admin
+          </button>
+        </div>
         
         <form onSubmit={handleSubmit} className="space-y-6 mb-8">
           {!canCreateProfile && (
@@ -105,17 +116,23 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
             />
           </div>
 
-          <div className="flex space-x-4">
-            <button
-              type="button"
-              onClick={() => router.push('/admin')}
-              className="flex-1 bg-gray-600 text-white p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-200"
-            >
-              Back to Admin
-            </button>
+          <label className="flex items-start gap-3 rounded-md bg-gray-700 p-3 text-sm text-gray-200">
+            <input
+              type="checkbox"
+              checked={requiresReview}
+              onChange={(e) => setRequiresReview(e.target.checked)}
+              className="mt-1 h-4 w-4"
+            />
+            <span>
+              <span className="block font-medium text-white">Require review before awarding XP</span>
+              <span className="text-gray-300">Logged tasks will wait in the admin review queue.</span>
+            </span>
+          </label>
+
+          <div className="flex">
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+              className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
               disabled={isLoading || !canCreateProfile}
             >
               {isLoading ? 'Creating...' : 'Create Profile'}
@@ -129,29 +146,47 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
             {profiles.map((profile) => (
               <li key={profile.id} className="bg-gray-700 p-3 rounded-md">
                 {editingProfile === profile.id ? (
-                  <div className="flex items-center space-x-2">
+                  <div className="space-y-3">
                     <input
                       type="text"
                       value={profile.name}
                       onChange={(e) => setProfiles(profiles.map(p => p.id === profile.id ? { ...p, name: e.target.value } : p))}
-                      className="flex-grow bg-gray-600 text-white p-1 rounded-md"
+                      className="w-full bg-gray-600 text-white p-2 rounded-md"
                     />
-                    <button
-                      onClick={() => handleEdit(profile.id, profile.name)}
-                      className="bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => setEditingProfile(null)}
-                      className="bg-gray-500 text-white px-2 py-1 rounded-md hover:bg-gray-600"
-                    >
-                      Discard
-                    </button>
+                    <label className="flex items-start gap-3 text-sm text-gray-200">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(profile.requires_review)}
+                        onChange={(e) => setProfiles(profiles.map(p => (
+                          p.id === profile.id ? { ...p, requires_review: e.target.checked } : p
+                        )))}
+                        className="mt-1 h-4 w-4"
+                      />
+                      <span>Require review before awarding XP</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(profile.id, profile.name, Boolean(profile.requires_review))}
+                        className="flex-1 bg-green-500 text-white px-3 py-2 rounded-md hover:bg-green-600"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingProfile(null)}
+                        className="flex-1 bg-gray-500 text-white px-3 py-2 rounded-md hover:bg-gray-600"
+                      >
+                        Discard
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
-                    <span>{profile.name}</span>
+                    <div>
+                      <span className="text-white">{profile.name}</span>
+                      {profile.requires_review && (
+                        <p className="text-xs text-yellow-300">Review required</p>
+                      )}
+                    </div>
                     <div>
                       <button
                         onClick={() => setEditingProfile(profile.id)}

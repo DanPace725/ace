@@ -4,12 +4,12 @@ import { createClient } from '@/utils/supabase/client';
 import { ManagedProfile } from '@/types/app';
 
 
-export const createManagedProfile = async (name: string, appUserId: string) => {
+export const createManagedProfile = async (name: string, appUserId: string, requiresReview = false) => {
   const supabase = createClient();
   try {
     const { data, error } = await supabase
       .from('managed_profiles')
-      .insert([{ name, app_user_id: appUserId }])
+      .insert([{ name, app_user_id: appUserId, requires_review: requiresReview }])
       .select();
 
     if (error) throw error;
@@ -44,12 +44,15 @@ export const fetchManagedProfiles = async (appUserIds: string | string[]) => {
 };
 
 
-export const updateManagedProfile = async (profileId: string, name: string) => {
+export const updateManagedProfile = async (profileId: string, name: string, requiresReview?: boolean) => {
   const supabase = createClient();
   try {
     const { data, error } = await supabase
       .from('managed_profiles')
-      .update({ name })
+      .update({
+        name,
+        ...(requiresReview === undefined ? {} : { requires_review: requiresReview }),
+      })
       .eq('id', profileId)
       .select();
 

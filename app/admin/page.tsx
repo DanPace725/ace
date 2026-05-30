@@ -9,6 +9,7 @@ const AdminPage = () => {
   const adminActions = [
     { title: 'Manage Profiles', path: '/admin/app_users' },
     { title: 'Manage Tasks', path: '/admin/actions' },
+    { title: 'Review Queue', path: '/admin/review-queue' },
     { title: 'Manage Levels', path: '/admin/levels' },
     { title: 'Manage Rewards', path: '/admin/rewards' },
   ];
