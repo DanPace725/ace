@@ -181,16 +181,16 @@ const ManageActionsPage = () => {
               <p className="mb-3 text-sm text-gray-300">Frequency: {action.frequency || 'None'}</p>
               <div className="flex gap-3">
                 <button
-                  onClick={() => handleEdit(action)}
-                  className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
-                >
-                  Edit
-                </button>
-                <button
                   onClick={() => handleDelete(action.id)}
                   className="flex-1 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500"
                 >
                   Delete
+                </button>
+                <button
+                  onClick={() => handleEdit(action)}
+                  className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
+                >
+                  Edit
                 </button>
               </div>
             </div>
@@ -217,16 +217,16 @@ const ManageActionsPage = () => {
                   <td className="px-4 py-2">{action.frequency}</td>
                   <td className="px-4 py-2">
                     <button
-                      onClick={() => handleEdit(action)}
-                      className="text-blue-400 hover:text-blue-500 mr-2"
-                    >
-                      Edit
-                    </button>
-                    <button
                       onClick={() => handleDelete(action.id)}
-                      className="text-red-400 hover:text-red-500"
+                      className="mr-2 text-red-400 hover:text-red-500"
                     >
                       Delete
+                    </button>
+                    <button
+                      onClick={() => handleEdit(action)}
+                      className="text-blue-400 hover:text-blue-500"
+                    >
+                      Edit
                     </button>
                   </td>
                 </tr>

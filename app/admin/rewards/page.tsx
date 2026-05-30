@@ -185,16 +185,16 @@ const ManageRewardsPage = () => {
               <p className="mb-3 text-sm text-gray-300">Level: {reward.description || 'None'}</p>
               <div className="flex gap-3">
                 <button
-                  onClick={() => handleEdit(reward)}
-                  className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
-                >
-                  Edit
-                </button>
-                <button
                   onClick={() => handleDelete(reward.id)}
                   className="flex-1 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500"
                 >
                   Delete
+                </button>
+                <button
+                  onClick={() => handleEdit(reward)}
+                  className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
+                >
+                  Edit
                 </button>
               </div>
             </div>
@@ -221,16 +221,16 @@ const ManageRewardsPage = () => {
                   <td className="px-4 py-2">{reward.description || 'null'}</td>
                   <td className="px-4 py-2">
                     <button
-                      onClick={() => handleEdit(reward)}
-                      className="text-blue-400 hover:text-blue-500 mr-2"
-                    >
-                      Edit
-                    </button>
-                    <button
                       onClick={() => handleDelete(reward.id)}
-                      className="text-red-400 hover:text-red-500"
+                      className="mr-2 text-red-400 hover:text-red-500"
                     >
                       Delete
+                    </button>
+                    <button
+                      onClick={() => handleEdit(reward)}
+                      className="text-blue-400 hover:text-blue-500"
+                    >
+                      Edit
                     </button>
                   </td>
                 </tr>
