@@ -49,7 +49,7 @@ export default function LoginPage() {
       <div className="px-8 py-6 mt-4 text-left bg-gray-800 shadow-lg rounded-lg">
         <div className="flex justify-center">
           <PublicImage
-            src="logo1.png"
+            src="logo2.png"
             alt="Logo"
             width={32}
             height={32}

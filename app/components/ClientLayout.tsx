@@ -13,10 +13,11 @@ const navItems = [
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const isLandingPage = pathname === '/'
   const isLoginPage = pathname === '/login'
   const isResetPasswordPage = pathname.startsWith('/reset-password')
 
-  if (isLoginPage || isResetPasswordPage) {
+  if (isLandingPage || isLoginPage || isResetPasswordPage) {
     return <>{children}</>
   }
 
