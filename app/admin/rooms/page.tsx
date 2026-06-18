@@ -44,10 +44,11 @@ const emptyCreditAdjustment: CreditAdjustmentState = {
 const roomStates = Object.keys(roomStateLabels) as RoomState[]
 
 const formatCredits = (value?: number | null) => `${(value ?? 0).toFixed(2)} credits`
+const formatLiveCredits = (value?: number | null) => `${(value ?? 0).toFixed(5)} credits`
 
 const formatDelta = (value: number) => {
   const sign = value > 0 ? '+' : ''
-  return `${sign}${value.toFixed(2)} credits`
+  return `${sign}${value.toFixed(5)} credits`
 }
 
 export default function ManageRoomsPage() {
@@ -96,7 +97,7 @@ export default function ManageRoomsPage() {
   }, [loadRooms])
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => setClock(Date.now()), 30000)
+    const intervalId = window.setInterval(() => setClock(Date.now()), 500)
     return () => window.clearInterval(intervalId)
   }, [])
 
@@ -279,7 +280,7 @@ export default function ManageRoomsPage() {
         />
         <span>
           <span className="block font-medium text-white">Shared room</span>
-          <span className="text-gray-300">Shared rooms can affect the house account later.</span>
+          <span className="text-gray-300">Positive settlements pay a small dividend to every profile.</span>
         </span>
       </label>
       <button
@@ -310,7 +311,7 @@ export default function ManageRoomsPage() {
         </div>
 
         <div className="mb-6 rounded-md bg-gray-900 p-4 text-sm text-gray-300">
-          Clean rooms earn {(economyRates.room.cleanHourly * 100).toFixed(2)}% per hour. Messy rooms lose {Math.abs(economyRates.room.messyHourly * 100).toFixed(2)}% per hour.
+          Clean rooms earn {(economyRates.room.cleanHourly * 100).toFixed(2)}% per hour. Messy rooms lose {Math.abs(economyRates.room.messyHourly * 100).toFixed(2)}% per hour. Shared rooms pay {(economyRates.house.dividendRate * 100).toFixed(0)}% of positive settlements back to profiles.
         </div>
 
         <form onSubmit={handleSubmit} className="mb-8 space-y-4">
@@ -338,7 +339,9 @@ export default function ManageRoomsPage() {
                       </p>
                     </div>
                     <div className="text-right text-sm">
-                      <p className="font-medium text-white">{formatCredits(projection.balance)}</p>
+                      <p className="font-mono font-medium tabular-nums text-white" aria-live="off">
+                        {formatLiveCredits(projection.balance)}
+                      </p>
                       <p className={deltaTone}>{formatDelta(projection.delta)} projected</p>
                       <p className="text-gray-300">{room.is_shared ? 'Shared' : 'Private'}</p>
                     </div>
@@ -406,7 +409,12 @@ export default function ManageRoomsPage() {
                 <h2 id="adjust-room-credits-title" className="text-2xl font-bold text-white">{adjustingRoom.name}</h2>
               </div>
               <div className="mb-4 rounded-md bg-gray-900 p-3 text-sm text-gray-300">
-                <p>Projected balance: <span className="font-medium text-white">{formatCredits(getProjectedRoomCredit(adjustingRoom, new Date(clock)).balance)}</span></p>
+                <p>
+                  Projected balance:{' '}
+                  <span className="font-mono font-medium tabular-nums text-white" aria-live="off">
+                    {formatLiveCredits(getProjectedRoomCredit(adjustingRoom, new Date(clock)).balance)}
+                  </span>
+                </p>
                 <p>Stored balance: <span className="font-medium text-white">{formatCredits(adjustingRoom.credit_account?.balance)}</span></p>
               </div>
               <div className="space-y-4">

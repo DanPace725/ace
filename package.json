@@ -10,6 +10,7 @@
     "lint": "next lint",
     "db:identity": "node scripts/db/identity.js",
     "db:migrate": "node scripts/db/migrate.js",
+    "db:seed:profile-credits": "node scripts/db/seed-profile-credits.js",
     "db:seed:rooms": "node scripts/db/seed-rooms.js",
     "db:verify": "node scripts/db/verify.js"
   },

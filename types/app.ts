@@ -151,6 +151,10 @@ export interface CreditEvent {
   created_at: string;
 }
 
+export interface ProfileWithAccount extends ManagedProfile {
+  credit_account?: CreditAccount | null;
+}
+
 export interface RoomWithAccount extends Room {
   assigned_profile_name?: string | null;
   credit_account?: CreditAccount | null;
@@ -165,6 +169,7 @@ export interface RoomResponsibility {
   status: RoomResponsibilityStatus;
   assigned_at: string;
   due_at: string | null;
+  grace_hours: number;
   submitted_at: string | null;
   reviewed_at: string | null;
   pending_action_log_id: string | null;
@@ -172,6 +177,24 @@ export interface RoomResponsibility {
   starting_room_state: RoomState | null;
   starting_room_balance: number | null;
   last_delay_settled_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoomResponsibilityWithDetails extends RoomResponsibility {
+  rooms: {
+    name: string;
+    state: RoomState;
+    is_shared: boolean;
+  } | null;
+  managed_profiles: {
+    name: string;
+  } | null;
+}
+
+export interface AdminPinSetting {
+  app_user_id: string;
+  pin_hash: string;
   created_at: string;
   updated_at: string;
 }

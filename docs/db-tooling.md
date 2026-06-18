@@ -8,6 +8,7 @@ This repo keeps schema changes and test data separate.
 npm run db:identity
 npm run db:migrate -- --dry-run
 npm run db:migrate
+npm run db:seed:profile-credits
 npm run db:seed:rooms
 npm run db:verify
 ```
@@ -28,6 +29,9 @@ sharing flags, and assignments to the standard test layout.
 ```powershell
 npm run db:seed:rooms -- --sync
 ```
+
+`db:seed:profile-credits` ensures every managed profile has a profile-owned
+credit account. It does not change existing balances.
 
 ## App user resolution
 

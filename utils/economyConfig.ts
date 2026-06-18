@@ -1,4 +1,7 @@
 export const economyRates = {
+  profile: {
+    taskCreditPerXp: 0.1,
+  },
   room: {
     cleanHourly: 0.0035,
     needsAttentionHourly: -0.0005,

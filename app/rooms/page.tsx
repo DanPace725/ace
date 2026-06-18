@@ -16,10 +16,11 @@ const stateTone: Record<RoomState, string> = {
 }
 
 const formatCredits = (value?: number | null) => `${(value ?? 0).toFixed(2)} credits`
+const formatLiveCredits = (value?: number | null) => `${(value ?? 0).toFixed(5)} credits`
 
 const formatDelta = (value: number) => {
   const sign = value > 0 ? '+' : ''
-  return `${sign}${value.toFixed(2)} credits`
+  return `${sign}${value.toFixed(5)} credits`
 }
 
 const formatHourlyRate = (rate: number) => {
@@ -110,7 +111,7 @@ export default function RoomsPage() {
   }, [loadRooms])
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => setClock(Date.now()), 30000)
+    const intervalId = window.setInterval(() => setClock(Date.now()), 500)
     return () => window.clearInterval(intervalId)
   }, [])
 
@@ -181,7 +182,12 @@ export default function RoomsPage() {
                 <div className="space-y-3">
                   <div className="rounded-md bg-gray-900 p-3">
                     <p className="text-sm text-gray-400">Projected credits</p>
-                    <p className="text-lg font-semibold text-white">{formatCredits(projection.balance)}</p>
+                    <p
+                      className="font-mono text-lg font-semibold tabular-nums text-white"
+                      aria-live="off"
+                    >
+                      {formatLiveCredits(projection.balance)}
+                    </p>
                     <p className={`text-sm ${deltaTone}`}>{formatDelta(projection.delta)} since settlement</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">

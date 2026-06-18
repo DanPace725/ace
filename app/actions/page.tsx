@@ -7,11 +7,13 @@ import { createActionLog } from '@/utils/api/actionLogs'
 import { createPendingActionLog } from '@/utils/api/reviewQueue'
 import { fetchManagedProfiles, updateProfileXP } from '@/utils/api/profiles'
 import { earnReward, fetchRewards } from '@/utils/api/rewards'
+import { awardProfileTaskCredits, calculateProfileTaskCredits } from '@/utils/api/economy'
 import { Action, ManagedProfile } from '@/types/app'
 import { toast } from 'react-toastify'
-import { getCurrentAppUserIdentity } from '@/utils/api/appUsers'
+import { getCurrentAppUserIdentity, requireCurrentAppUserIdentity } from '@/utils/api/appUsers'
 
 const getTodayDate = () => new Date().toISOString().slice(0, 10)
+const formatTaskCredits = (baseXp: number) => `${calculateProfileTaskCredits(baseXp).toFixed(2)} credits`
 
 const LogTaskPage = () => {
   const [actions, setActions] = useState<Action[]>([])
@@ -23,6 +25,7 @@ const LogTaskPage = () => {
   const [profiles, setProfiles] = useState<ManagedProfile[]>([])
   const [selectedProfile, setSelectedProfile] = useState<ManagedProfile | null>(null)
   const router = useRouter()
+  const selectedActionDetails = actions.find(action => action.id === selectedAction)
 
   const loadProfilesAndActions = useCallback(async () => {
     try {
@@ -111,15 +114,25 @@ const LogTaskPage = () => {
       if (selectedProfile.requires_review) {
         await createPendingActionLog(actionLog)
         toast.success('Task sent for review')
-        router.push(`/dashboard?profileId=${selectedProfile.id}`)
+        router.push(`/profile?profileId=${selectedProfile.id}`)
         return
       }
 
-      await createActionLog(actionLog)
+      const identity = await requireCurrentAppUserIdentity()
+      const createdLog = await createActionLog(actionLog)
+      await awardProfileTaskCredits({
+        app_user_id: identity.appUserId,
+        profile_id: selectedProfile.id,
+        action_id: selectedAction,
+        action_log_id: createdLog.id,
+        base_xp: selectedActionData.base_xp,
+        bonus_xp: actionLog.bonus_xp,
+        created_by: identity.appUserId,
+      })
       await updateProfileXP(selectedProfile.id)
       await handleRandomReward(selectedProfile.id)
       toast.success('Task logged successfully')
-      router.push(`/dashboard?profileId=${selectedProfile.id}`)
+      router.push(`/profile?profileId=${selectedProfile.id}`)
     } catch (error) {
       toast.error('Failed to log task')
       console.error(error)
@@ -166,9 +179,16 @@ const LogTaskPage = () => {
           >
             <option value="">Select a task</option>
             {actions.map((action) => (
-              <option key={action.id} value={action.id}>{action.name}</option>
+              <option key={action.id} value={action.id}>
+                {`${action.name} - ${action.base_xp} XP / ${formatTaskCredits(action.base_xp)}`}
+              </option>
             ))}
           </select>
+          {selectedActionDetails && (
+            <p className="mt-3 rounded-md bg-gray-700/80 px-3 py-2 text-sm text-gray-200">
+              Base value: {selectedActionDetails.base_xp} XP / {formatTaskCredits(selectedActionDetails.base_xp)}
+            </p>
+          )}
           {actions.length === 0 && (
             <p className="mt-3 text-sm text-gray-400">No tasks are available yet.</p>
           )}
@@ -217,10 +237,10 @@ const LogTaskPage = () => {
           </button>
           <button
             type="button"
-            onClick={() => router.push(selectedProfile ? `/dashboard?profileId=${selectedProfile.id}` : '/dashboard')}
+            onClick={() => router.push(selectedProfile ? `/profile?profileId=${selectedProfile.id}` : '/profile')}
             className="w-full rounded-md bg-gray-700 p-3 font-medium text-white transition hover:bg-gray-600"
           >
-            Dashboard
+            Profile
           </button>
         </div>
       </form>

@@ -673,6 +673,7 @@ export type Database = {
           assigned_profile_id: string
           created_at: string | null
           due_at: string | null
+          grace_hours: number
           id: string
           last_delay_settled_at: string | null
           pending_action_log_id: string | null
@@ -692,6 +693,7 @@ export type Database = {
           assigned_profile_id: string
           created_at?: string | null
           due_at?: string | null
+          grace_hours?: number
           id?: string
           last_delay_settled_at?: string | null
           pending_action_log_id?: string | null
@@ -711,6 +713,7 @@ export type Database = {
           assigned_profile_id?: string
           created_at?: string | null
           due_at?: string | null
+          grace_hours?: number
           id?: string
           last_delay_settled_at?: string | null
           pending_action_log_id?: string | null

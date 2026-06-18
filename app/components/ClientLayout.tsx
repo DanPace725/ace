@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { FaDoorOpen, FaGift, FaHome, FaPlusCircle, FaUser } from 'react-icons/fa'
 
 const navItems = [
-  { name: 'Home', path: '/dashboard', icon: FaHome },
+  { name: 'Home', path: '/dashboard/stats', icon: FaHome },
   { name: 'Log', path: '/actions', icon: FaPlusCircle },
   { name: 'Rooms', path: '/rooms', icon: FaDoorOpen },
   { name: 'Rewards', path: '/rewards', icon: FaGift },
@@ -17,6 +17,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const isLandingPage = pathname === '/'
   const isLoginPage = pathname === '/login'
   const isResetPasswordPage = pathname.startsWith('/reset-password')
+  const isHomeActive = (path: string) => (
+    path === '/dashboard/stats'
+      ? pathname === '/dashboard' || pathname === '/dashboard/stats'
+      : pathname === path || pathname.startsWith(`${path}/`)
+  )
 
   if (isLandingPage || isLoginPage || isResetPasswordPage) {
     return <>{children}</>
@@ -32,7 +37,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`)
+            const isActive = isHomeActive(item.path)
 
             return (
               <Link
