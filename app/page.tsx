@@ -1,40 +1,66 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { FaChartLine, FaClipboardCheck, FaCoins, FaDoorOpen, FaGift, FaPlusCircle, FaUserFriends } from 'react-icons/fa'
 
-const highlights = [
+const featureGroups = [
   {
-    title: 'Log meaningful effort',
-    body: 'Turn chores, habits, study sessions, and personal goals into simple XP moments.',
+    title: 'Profiles',
+    body: 'Give each learner, kid, or personal track its own XP, level, rewards, and credit balance.',
+    icon: FaUserFriends,
   },
   {
-    title: 'Review before rewarding',
-    body: 'Optional approval queues let parents, teachers, or admins confirm tasks first.',
+    title: 'Task Logging',
+    body: 'Log chores, habits, studying, reading, or custom goals with clear XP and optional bonus points.',
+    icon: FaPlusCircle,
   },
   {
-    title: 'Make progress visible',
-    body: 'Profiles, levels, rewards, and XP charts keep the day-to-day work easy to see.',
+    title: 'Review Queue',
+    body: 'Route selected profiles through approval before XP and credits are awarded.',
+    icon: FaClipboardCheck,
   },
+  {
+    title: 'Rewards',
+    body: 'Connect progress to earned rewards so effort has a visible payoff.',
+    icon: FaGift,
+  },
+  {
+    title: 'Rooms',
+    body: 'Track shared spaces, assignments, room state, and balance changes over time.',
+    icon: FaDoorOpen,
+  },
+  {
+    title: 'Credits',
+    body: 'Use a simple credit economy to show gains, costs, dividends, and profile ledgers.',
+    icon: FaCoins,
+  },
+]
+
+const principles = [
+  'Mobile-first task logging for quick one-hand updates.',
+  'Admin tools for managing profiles, tasks, rewards, rooms, and assignments.',
+  'Progress views that separate the selected profile from whole-house stats.',
+  'A conservative credit system that can grow with more household rules over time.',
 ]
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#f7f4ed] text-[#15252b]">
-      <header className="fixed inset-x-0 top-0 z-30 border-b border-[#d9d1c3] bg-[#f7f4ed]/95 px-4 py-3 backdrop-blur">
+    <div className="min-h-screen bg-gray-900 text-white">
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-gray-800 bg-gray-900/95 px-4 py-3 backdrop-blur">
         <nav className="mx-auto flex max-w-6xl items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 font-bold tracking-wide text-[#15252b]">
+          <Link href="/" className="flex items-center gap-3 font-bold text-white">
             <Image
               src="/logo2.png"
               alt=""
-              width={36}
-              height={36}
+              width={40}
+              height={40}
               className="rounded-full"
               priority
             />
-            ACE
+            <span className="text-lg">ACE</span>
           </Link>
           <Link
             href="/login"
-            className="rounded-md bg-[#15252b] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#264653] focus:outline-none focus:ring-2 focus:ring-[#2f80ed]"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
             Login
           </Link>
@@ -42,87 +68,119 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="relative isolate flex min-h-[84svh] items-center overflow-hidden px-4 pb-16 pt-24">
+        <section className="relative isolate flex min-h-[88svh] items-center overflow-hidden border-b border-gray-800 px-4 pb-16 pt-24">
           <Image
             src="/logo2.png"
             alt=""
-            width={640}
-            height={640}
-            className="pointer-events-none absolute -right-28 top-20 -z-10 w-[420px] rounded-full opacity-20 sm:right-4 sm:w-[560px] lg:w-[640px]"
+            width={760}
+            height={760}
+            className="pointer-events-none absolute left-1/2 top-20 -z-10 w-[560px] -translate-x-1/2 rounded-full opacity-10 sm:top-16 sm:w-[700px]"
             priority
           />
 
-          <div className="mx-auto grid w-full max-w-6xl gap-10 lg:grid-cols-[1fr_360px] lg:items-center">
-            <div className="max-w-2xl">
-              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[#2a6f73]">Gamified progress tracking</p>
-              <h1 className="text-5xl font-black leading-[0.98] text-[#15252b] sm:text-6xl lg:text-7xl">
+          <div className="mx-auto w-full max-w-6xl">
+            <div className="max-w-3xl">
+              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-blue-300">Gamified household progress</p>
+              <h1 className="text-5xl font-black leading-[1.02] text-white sm:text-6xl lg:text-7xl">
                 ACE
               </h1>
-              <p className="mt-6 max-w-xl text-lg leading-8 text-[#395057]">
-                A lightweight app for turning everyday tasks into XP, levels, and rewards across family, classroom, or personal profiles.
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-300 sm:text-xl">
+                A mobile-friendly app for turning everyday responsibilities into XP, rewards, room care, and a simple credit economy.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/login"
-                  className="rounded-md bg-[#2f80ed] px-5 py-3 text-center font-semibold text-white transition hover:bg-[#2569c7] focus:outline-none focus:ring-2 focus:ring-[#2f80ed]"
+                  className="rounded-md bg-blue-600 px-5 py-3 text-center font-semibold text-white transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 >
                   Login to ACE
                 </Link>
                 <Link
                   href="#overview"
-                  className="rounded-md border border-[#b8ad9d] px-5 py-3 text-center font-semibold text-[#15252b] transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#2f80ed]"
+                  className="rounded-md border border-gray-600 px-5 py-3 text-center font-semibold text-gray-100 transition hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 >
-                  See How It Works
+                  Overview
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-md border border-[#d9d1c3] bg-white/80 p-5 shadow-sm">
-              <div className="mb-5 flex items-center justify-between">
-                <span className="font-semibold text-[#15252b]">Today</span>
-                <span className="rounded-full bg-[#f4d35e] px-3 py-1 text-xs font-bold text-[#15252b]">Level 4</span>
+            <div className="mt-12 grid max-w-4xl gap-3 sm:grid-cols-3">
+              <div className="rounded-md border border-gray-700 bg-gray-800/80 p-4">
+                <p className="text-sm text-gray-400">Profiles</p>
+                <p className="mt-2 text-2xl font-bold">XP + Levels</p>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <div className="mb-2 flex justify-between text-sm">
-                    <span>Morning routine</span>
-                    <span>80 XP</span>
-                  </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-[#e6dfd2]">
-                    <div className="h-full w-4/5 rounded-full bg-[#2f80ed]" />
-                  </div>
-                </div>
-                <div>
-                  <div className="mb-2 flex justify-between text-sm">
-                    <span>Reading</span>
-                    <span>45 XP</span>
-                  </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-[#e6dfd2]">
-                    <div className="h-full w-[45%] rounded-full bg-[#2a9d8f]" />
-                  </div>
-                </div>
-                <div>
-                  <div className="mb-2 flex justify-between text-sm">
-                    <span>Review queue</span>
-                    <span>2 pending</span>
-                  </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-[#e6dfd2]">
-                    <div className="h-full w-1/3 rounded-full bg-[#e76f51]" />
-                  </div>
-                </div>
+              <div className="rounded-md border border-gray-700 bg-gray-800/80 p-4">
+                <p className="text-sm text-gray-400">Rooms</p>
+                <p className="mt-2 text-2xl font-bold">Credits + State</p>
+              </div>
+              <div className="rounded-md border border-gray-700 bg-gray-800/80 p-4">
+                <p className="text-sm text-gray-400">Admin</p>
+                <p className="mt-2 text-2xl font-bold">Review + Assign</p>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="overview" className="border-t border-[#d9d1c3] bg-white px-4 py-12">
-          <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-3">
-            {highlights.map((highlight) => (
-              <article key={highlight.title} className="rounded-md border border-[#e2dbcf] p-5">
-                <h2 className="text-lg font-bold text-[#15252b]">{highlight.title}</h2>
-                <p className="mt-3 leading-7 text-[#50636a]">{highlight.body}</p>
-              </article>
-            ))}
+        <section id="overview" className="px-4 py-12 sm:py-16">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-300">Broad system</p>
+                <h2 className="mt-2 text-3xl font-bold text-white">What ACE Connects</h2>
+              </div>
+              <p className="max-w-xl text-gray-300">
+                The goal is to make effort, responsibility, and follow-through visible without adding a lot of friction.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {featureGroups.map((feature) => {
+                const Icon = feature.icon
+
+                return (
+                  <article key={feature.title} className="rounded-md border border-gray-700 bg-gray-800 p-5 shadow-lg">
+                    <Icon className="mb-4 h-6 w-6 text-blue-300" aria-hidden="true" />
+                    <h3 className="text-lg font-bold text-white">{feature.title}</h3>
+                    <p className="mt-3 leading-7 text-gray-300">{feature.body}</p>
+                  </article>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-y border-gray-800 bg-gray-950 px-4 py-12">
+          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-300">Designed around use</p>
+              <h2 className="mt-2 text-3xl font-bold text-white">Small logs, bigger patterns</h2>
+              <p className="mt-4 leading-8 text-gray-300">
+                ACE is meant to be quick enough for daily use while still leaving a useful trail: what got done, what needs review, how profiles are progressing, and how room credits are moving.
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              {principles.map((principle) => (
+                <div key={principle} className="flex gap-3 rounded-md border border-gray-800 bg-gray-900 p-4">
+                  <FaChartLine className="mt-1 h-5 w-5 shrink-0 text-green-300" aria-hidden="true" />
+                  <p className="leading-7 text-gray-200">{principle}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 py-12 sm:py-16">
+          <div className="mx-auto flex max-w-6xl flex-col gap-5 rounded-md border border-gray-700 bg-gray-800 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div>
+              <p className="text-sm text-gray-400">Already set up?</p>
+              <h2 className="mt-1 text-2xl font-bold text-white">Go straight to your profiles, rooms, rewards, and admin tools.</h2>
+            </div>
+            <Link
+              href="/login"
+              className="rounded-md bg-blue-600 px-5 py-3 text-center font-semibold text-white transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              Login
+            </Link>
           </div>
         </section>
       </main>
