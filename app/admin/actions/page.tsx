@@ -4,6 +4,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { fetchActions, createAction, updateAction, deleteAction } from '@/utils/api/actions';
+import { calculateProfileTaskCredits } from '@/utils/api/economy';
 import { Action } from '@/types/app';
 import { getCurrentAppUserIdentity, requireCurrentAppUserIdentity } from '@/utils/api/appUsers';
 
@@ -15,6 +16,8 @@ type ActionFormState = {
 };
 
 const emptyActionForm: ActionFormState = { name: '', description: '', base_xp: 0, frequency: '' };
+
+const formatTaskCredits = (baseXp: number) => `${calculateProfileTaskCredits(baseXp).toFixed(2)} credits`;
 
 const ManageActionsPage = () => {
   const [actions, setActions] = useState<Action[]>([]);
@@ -176,7 +179,12 @@ const ManageActionsPage = () => {
                   <h2 className="font-semibold text-white">{action.name}</h2>
                   <p className="text-sm text-gray-300">{action.description || 'No description'}</p>
                 </div>
-                <span className="shrink-0 rounded-full bg-blue-200 px-2 py-1 text-xs text-blue-800">{action.base_xp} XP</span>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <span className="rounded-full bg-blue-200 px-2 py-1 text-xs text-blue-800">{action.base_xp} XP</span>
+                  <span className="rounded-full bg-emerald-200 px-2 py-1 text-xs text-emerald-900">
+                    {formatTaskCredits(action.base_xp)}
+                  </span>
+                </div>
               </div>
               <p className="mb-3 text-sm text-gray-300">Frequency: {action.frequency || 'None'}</p>
               <div className="flex gap-3">
@@ -204,6 +212,7 @@ const ManageActionsPage = () => {
                 <th className="px-4 py-2">Name</th>
                 <th className="px-4 py-2">Description</th>
                 <th className="px-4 py-2">Base XP</th>
+                <th className="px-4 py-2">Base Credits</th>
                 <th className="px-4 py-2">Frequency</th>
                 <th className="px-4 py-2">Actions</th>
               </tr>
@@ -214,6 +223,7 @@ const ManageActionsPage = () => {
                   <td className="px-4 py-2">{action.name}</td>
                   <td className="px-4 py-2">{action.description}</td>
                   <td className="px-4 py-2">{action.base_xp}</td>
+                  <td className="px-4 py-2">{formatTaskCredits(action.base_xp)}</td>
                   <td className="px-4 py-2">{action.frequency}</td>
                   <td className="px-4 py-2">
                     <button

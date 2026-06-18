@@ -4,7 +4,13 @@ import { useCallback, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-toastify'
 import { createManagedProfile, fetchManagedProfiles, updateManagedProfile, deleteManagedProfile } from '@/utils/api/users'
-import { ManagedProfile } from '@/types/app'
+import {
+  adjustProfileCredits,
+  ensureProfileCreditAccount,
+  ensureProfileCreditAccounts,
+  fetchCreditAccountsForProfiles,
+} from '@/utils/api/economy'
+import { CreditAccount, ManagedProfile, ProfileWithAccount } from '@/types/app'
 
 interface ProfileManagerProps {
   userId: string
@@ -16,21 +22,39 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
   const [name, setName] = useState('')
   const [requiresReview, setRequiresReview] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [profiles, setProfiles] = useState<ManagedProfile[]>([])
+  const [profiles, setProfiles] = useState<ProfileWithAccount[]>([])
   const [editingProfile, setEditingProfile] = useState<string | null>(null)
+  const [adjustingProfile, setAdjustingProfile] = useState<ProfileWithAccount | null>(null)
+  const [creditAmount, setCreditAmount] = useState('')
+  const [creditNote, setCreditNote] = useState('')
   const router = useRouter()
+
+  const formatCredits = (value?: number | null) => `${(value ?? 0).toFixed(2)} credits`
+
+  const attachCreditAccounts = useCallback(async (managedProfiles: ManagedProfile[]) => {
+    const accounts = await fetchCreditAccountsForProfiles(managedProfiles.map((profile) => profile.id))
+    const accountsByProfileId = accounts.reduce<Record<string, CreditAccount>>((lookup, account) => {
+      if (account.profile_id) lookup[account.profile_id] = account
+      return lookup
+    }, {})
+
+    return managedProfiles.map((profile) => ({
+      ...profile,
+      credit_account: accountsByProfileId[profile.id] ?? null,
+    }))
+  }, [])
 
   const loadProfiles = useCallback(async () => {
     try {
       const fetchedProfiles = await fetchManagedProfiles(
         fallbackUserId ? [userId, fallbackUserId] : userId
       )
-      setProfiles(fetchedProfiles)
+      setProfiles(await attachCreditAccounts(fetchedProfiles))
     } catch (error) {
       toast.error('Failed to load profiles')
       console.error(error)
     }
-  }, [fallbackUserId, userId])
+  }, [attachCreditAccounts, fallbackUserId, userId])
 
   useEffect(() => {
     loadProfiles()
@@ -47,7 +71,8 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
 
     try {
       const newProfile = await createManagedProfile(name, userId, requiresReview)
-      setProfiles([newProfile, ...profiles])
+      const creditAccount = await ensureProfileCreditAccount(userId, newProfile.id)
+      setProfiles([{ ...newProfile, credit_account: creditAccount }, ...profiles])
       setName('')
       setRequiresReview(false)
       toast.success('Profile created successfully')
@@ -81,6 +106,66 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
         toast.error('Failed to delete profile')
         console.error(error)
       }
+    }
+  }
+
+  const handleEnsureCreditAccounts = async () => {
+    if (profiles.length === 0) {
+      toast.info('No profiles need credit accounts yet')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await ensureProfileCreditAccounts(userId, profiles.map((profile) => profile.id))
+      await loadProfiles()
+      toast.success('Profile credit accounts are ready')
+    } catch (error) {
+      toast.error('Failed to prepare profile credit accounts')
+      console.error(error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const openCreditModal = (profile: ProfileWithAccount) => {
+    setAdjustingProfile(profile)
+    setCreditAmount('')
+    setCreditNote('')
+  }
+
+  const closeCreditModal = () => {
+    setAdjustingProfile(null)
+    setCreditAmount('')
+    setCreditNote('')
+  }
+
+  const submitCreditAdjustment = async (direction: 'add' | 'remove') => {
+    if (!adjustingProfile) return
+
+    const amount = Number(creditAmount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error('Enter a credit amount greater than zero')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await adjustProfileCredits({
+        app_user_id: userId,
+        profile: adjustingProfile,
+        amount: direction === 'add' ? amount : -amount,
+        note: creditNote,
+        created_by: userId,
+      })
+      closeCreditModal()
+      await loadProfiles()
+      toast.success(direction === 'add' ? 'Credits added' : 'Credits removed')
+    } catch (error) {
+      toast.error('Failed to adjust profile credits')
+      console.error(error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -141,6 +226,14 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
         </form>
 
         <h2 className="text-2xl font-bold text-white mb-4">Your Profiles</h2>
+        <button
+          type="button"
+          onClick={handleEnsureCreditAccounts}
+          className="mb-4 w-full rounded-md bg-gray-600 px-4 py-3 font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-700"
+          disabled={isLoading || profiles.length === 0}
+        >
+          Ensure Credit Accounts
+        </button>
         {profiles.length > 0 ? (
           <ul className="space-y-2">
             {profiles.map((profile) => (
@@ -183,16 +276,23 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-white">{profile.name}</span>
+                      <p className="text-xs text-gray-300">{formatCredits(profile.credit_account?.balance)}</p>
                       {profile.requires_review && (
                         <p className="text-xs text-yellow-300">Review required</p>
                       )}
                     </div>
-                    <div>
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleDelete(profile.id)}
-                        className="mr-2 text-red-400 hover:text-red-500"
+                        className="text-red-400 hover:text-red-500"
                       >
                         Delete
+                      </button>
+                      <button
+                        onClick={() => openCreditModal(profile)}
+                        className="text-green-300 hover:text-green-200"
+                      >
+                        Credits
                       </button>
                       <button
                         onClick={() => setEditingProfile(profile.id)}
@@ -208,6 +308,67 @@ const ProfileManager = ({ userId, fallbackUserId, canCreateProfile = true }: Pro
           </ul>
         ) : (
           <p className="text-gray-400">No profiles created yet.</p>
+        )}
+
+        {adjustingProfile && (
+          <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-4 sm:items-center sm:justify-center">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="adjust-profile-credits-title"
+              className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-md bg-gray-800 p-5 shadow-xl"
+            >
+              <div className="mb-5">
+                <p className="text-sm text-gray-400">Adjust profile credits</p>
+                <h2 id="adjust-profile-credits-title" className="text-2xl font-bold text-white">{adjustingProfile.name}</h2>
+              </div>
+              <div className="mb-4 rounded-md bg-gray-900 p-3 text-sm text-gray-300">
+                Current balance: <span className="font-medium text-white">{formatCredits(adjustingProfile.credit_account?.balance)}</span>
+              </div>
+              <div className="space-y-4">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Amount"
+                  value={creditAmount}
+                  onChange={(e) => setCreditAmount(e.target.value)}
+                  className="w-full rounded-md bg-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <textarea
+                  placeholder="Note"
+                  value={creditNote}
+                  onChange={(e) => setCreditNote(e.target.value)}
+                  className="min-h-24 w-full rounded-md bg-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => submitCreditAdjustment('remove')}
+                    className="rounded-md bg-red-600 p-3 font-medium text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-gray-600"
+                    disabled={isLoading}
+                  >
+                    Remove
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => submitCreditAdjustment('add')}
+                    className="rounded-md bg-green-700 p-3 font-medium text-white transition hover:bg-green-600 disabled:cursor-not-allowed disabled:bg-gray-600"
+                    disabled={isLoading}
+                  >
+                    Apply
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeCreditModal}
+                  className="w-full rounded-md bg-gray-600 p-3 font-medium text-white transition hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

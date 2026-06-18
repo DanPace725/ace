@@ -2,21 +2,28 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FaGift, FaHome, FaPlusCircle, FaUser } from 'react-icons/fa'
+import { FaDoorOpen, FaGift, FaHome, FaPlusCircle, FaUser } from 'react-icons/fa'
 
 const navItems = [
-  { name: 'Home', path: '/dashboard', icon: FaHome },
+  { name: 'Home', path: '/dashboard/stats', icon: FaHome },
   { name: 'Log', path: '/actions', icon: FaPlusCircle },
+  { name: 'Rooms', path: '/rooms', icon: FaDoorOpen },
   { name: 'Rewards', path: '/rewards', icon: FaGift },
   { name: 'Profile', path: '/profile', icon: FaUser },
 ]
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const isLandingPage = pathname === '/'
   const isLoginPage = pathname === '/login'
   const isResetPasswordPage = pathname.startsWith('/reset-password')
+  const isHomeActive = (path: string) => (
+    path === '/dashboard/stats'
+      ? pathname === '/dashboard' || pathname === '/dashboard/stats'
+      : pathname === path || pathname.startsWith(`${path}/`)
+  )
 
-  if (isLoginPage || isResetPasswordPage) {
+  if (isLandingPage || isLoginPage || isResetPasswordPage) {
     return <>{children}</>
   }
 
@@ -27,10 +34,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-700 bg-gray-900/95 px-2 pb-3 pt-2 backdrop-blur sm:px-4">
-        <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+        <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`)
+            const isActive = isHomeActive(item.path)
 
             return (
               <Link

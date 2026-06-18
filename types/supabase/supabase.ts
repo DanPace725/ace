@@ -485,6 +485,336 @@ export type Database = {
           },
         ]
       }
+      rooms: {
+        Row: {
+          app_user_id: string
+          archived_at: string | null
+          assigned_profile_id: string | null
+          created_at: string | null
+          id: string
+          is_shared: boolean
+          name: string
+          state: string
+          state_changed_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          app_user_id: string
+          archived_at?: string | null
+          assigned_profile_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_shared?: boolean
+          name: string
+          state?: string
+          state_changed_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          app_user_id?: string
+          archived_at?: string | null
+          assigned_profile_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_shared?: boolean
+          name?: string
+          state?: string
+          state_changed_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rooms_app_user_id_fkey"
+            columns: ["app_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_assigned_profile_id_fkey"
+            columns: ["assigned_profile_id"]
+            isOneToOne: false
+            referencedRelation: "managed_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_accounts: {
+        Row: {
+          app_user_id: string
+          balance: number
+          created_at: string | null
+          id: string
+          last_settled_at: string | null
+          owner_type: string
+          profile_id: string | null
+          room_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          app_user_id: string
+          balance?: number
+          created_at?: string | null
+          id?: string
+          last_settled_at?: string | null
+          owner_type: string
+          profile_id?: string | null
+          room_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          app_user_id?: string
+          balance?: number
+          created_at?: string | null
+          id?: string
+          last_settled_at?: string | null
+          owner_type?: string
+          profile_id?: string | null
+          room_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_accounts_app_user_id_fkey"
+            columns: ["app_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_accounts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "managed_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_accounts_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_events: {
+        Row: {
+          account_id: string
+          amount: number
+          app_user_id: string
+          balance_after: number | null
+          created_at: string | null
+          created_by: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          note: string | null
+          source_id: string | null
+          source_type: string | null
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          app_user_id: string
+          balance_after?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          note?: string | null
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          app_user_id?: string
+          balance_after?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          note?: string | null
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "credit_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_events_app_user_id_fkey"
+            columns: ["app_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_responsibilities: {
+        Row: {
+          action_log_id: string | null
+          app_user_id: string
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_profile_id: string
+          created_at: string | null
+          due_at: string | null
+          grace_hours: number
+          id: string
+          last_delay_settled_at: string | null
+          pending_action_log_id: string | null
+          reviewed_at: string | null
+          room_id: string
+          starting_room_balance: number | null
+          starting_room_state: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_log_id?: string | null
+          app_user_id: string
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_profile_id: string
+          created_at?: string | null
+          due_at?: string | null
+          grace_hours?: number
+          id?: string
+          last_delay_settled_at?: string | null
+          pending_action_log_id?: string | null
+          reviewed_at?: string | null
+          room_id: string
+          starting_room_balance?: number | null
+          starting_room_state?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_log_id?: string | null
+          app_user_id?: string
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_profile_id?: string
+          created_at?: string | null
+          due_at?: string | null
+          grace_hours?: number
+          id?: string
+          last_delay_settled_at?: string | null
+          pending_action_log_id?: string | null
+          reviewed_at?: string | null
+          room_id?: string
+          starting_room_balance?: number | null
+          starting_room_state?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_responsibilities_action_log_id_fkey"
+            columns: ["action_log_id"]
+            isOneToOne: false
+            referencedRelation: "action_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_responsibilities_app_user_id_fkey"
+            columns: ["app_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_responsibilities_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_responsibilities_assigned_profile_id_fkey"
+            columns: ["assigned_profile_id"]
+            isOneToOne: false
+            referencedRelation: "managed_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_responsibilities_pending_action_log_id_fkey"
+            columns: ["pending_action_log_id"]
+            isOneToOne: false
+            referencedRelation: "pending_action_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_responsibilities_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_state_events: {
+        Row: {
+          changed_by: string | null
+          created_at: string | null
+          from_state: string | null
+          id: string
+          note: string | null
+          room_id: string
+          to_state: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string | null
+          from_state?: string | null
+          id?: string
+          note?: string | null
+          room_id: string
+          to_state: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string | null
+          from_state?: string | null
+          id?: string
+          note?: string | null
+          room_id?: string
+          to_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_state_events_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_state_events_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rewards: {
         Row: {
           created_at: string | null

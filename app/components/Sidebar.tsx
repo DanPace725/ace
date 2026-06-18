@@ -10,7 +10,8 @@ const Sidebar = ({ isOpen, toggleSidebar }: { isOpen: boolean, toggleSidebar: ()
   const supabase = createClient();
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard' },
+    { name: 'Home', path: '/dashboard/stats' },
+    { name: 'Profile', path: '/profile' },
     { name: 'Log Task', path: '/actions' },
     { name: 'Rewards', path: '/rewards' },
     { name: 'Admin', path: '/admin' },

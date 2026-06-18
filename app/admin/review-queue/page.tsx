@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'react-toastify'
 import { createActionLog } from '@/utils/api/actionLogs'
 import { getCurrentAppUserIdentity, requireCurrentAppUserIdentity } from '@/utils/api/appUsers'
+import { awardProfileTaskCredits } from '@/utils/api/economy'
 import { updateProfileXP } from '@/utils/api/profiles'
 import { earnReward, fetchRewards } from '@/utils/api/rewards'
 import { fetchPendingActionLogs, updatePendingActionLogStatus } from '@/utils/api/reviewQueue'
@@ -55,12 +56,21 @@ const ReviewQueuePage = () => {
     setActiveLogId(pendingLog.id)
     try {
       const identity = await requireCurrentAppUserIdentity()
-      await createActionLog({
+      const createdLog = await createActionLog({
         profile_id: pendingLog.profile_id,
         action_id: pendingLog.action_id,
         timestamp: pendingLog.timestamp,
         base_xp: pendingLog.base_xp,
         bonus_xp: pendingLog.bonus_xp,
+      })
+      await awardProfileTaskCredits({
+        app_user_id: identity.appUserId,
+        profile_id: pendingLog.profile_id,
+        action_id: pendingLog.action_id,
+        action_log_id: createdLog.id,
+        base_xp: pendingLog.base_xp,
+        bonus_xp: pendingLog.bonus_xp,
+        created_by: identity.appUserId,
       })
       await updatePendingActionLogStatus(pendingLog.id, 'approved', identity.appUserId)
       await updateProfileXP(pendingLog.profile_id)

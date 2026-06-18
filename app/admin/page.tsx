@@ -2,13 +2,21 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { lockAdminSession } from '@/utils/adminLock';
 
 const AdminPage = () => {
   const router = useRouter();
 
+  const handleLockAdmin = () => {
+    lockAdminSession();
+    router.push('/admin/unlock');
+  };
+
   const adminActions = [
     { title: 'Manage Profiles', path: '/admin/app_users' },
     { title: 'Manage Tasks', path: '/admin/actions' },
+    { title: 'Manage Rooms', path: '/admin/rooms' },
+    { title: 'Manage Assignments', path: '/admin/assignments' },
     { title: 'Review Queue', path: '/admin/review-queue' },
     { title: 'Manage Levels', path: '/admin/levels' },
     { title: 'Manage Rewards', path: '/admin/rewards' },
@@ -30,6 +38,14 @@ const AdminPage = () => {
             </button>
           ))}
         </div>
+
+        <button
+          type="button"
+          onClick={handleLockAdmin}
+          className="mt-6 w-full rounded-md bg-gray-900 p-3 font-medium text-white transition hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+        >
+          Lock Admin
+        </button>
       </div>
     </div>
   );
