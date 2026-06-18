@@ -151,6 +151,10 @@ export interface CreditEvent {
   created_at: string;
 }
 
+export interface ProfileCreditLedgerEvent extends CreditEvent {
+  account?: CreditAccount | null;
+}
+
 export interface ProfileWithAccount extends ManagedProfile {
   credit_account?: CreditAccount | null;
 }

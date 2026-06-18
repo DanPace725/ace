@@ -7,13 +7,28 @@ import 'react-circular-progressbar/dist/styles.css'
 import { fetchProfileData, fetchRecentTasks, fetchEarnedRewards, updateProfileLevel } from '@/utils/api/profiles'
 import { fetchLevelData } from '@/utils/api/levels'
 import { fetchLevelReward, earnReward } from '@/utils/api/rewards'
-import { RecentTask, EarnedReward, ProfileWithAccount } from '@/types/app'
+import { RecentTask, EarnedReward, ProfileCreditLedgerEvent, ProfileWithAccount } from '@/types/app'
 import { toast } from 'react-toastify'
 import { getCurrentAppUserIdentity } from '@/utils/api/appUsers'
-import { fetchCreditAccountsForProfiles, fetchProfilesWithCreditAccounts } from '@/utils/api/economy'
+import { fetchCreditAccountsForProfiles, fetchProfileCreditLedger, fetchProfilesWithCreditAccounts } from '@/utils/api/economy'
 import { createClient } from '@/utils/supabase/client'
 
 const formatCredits = (value?: number | null) => `${(value ?? 0).toFixed(2)} credits`
+
+const formatSignedCredits = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}`
+
+const creditEventLabels: Record<string, string> = {
+  admin_adjustment: 'Admin adjustment',
+  delay_cost: 'Delay cost',
+  forgiveness_reset: 'Forgiveness reset',
+  house_dividend: 'Shared room dividend',
+  maintenance_interest: 'Room interest',
+  messiness_tax: 'Messiness tax',
+  rescue_cost: 'Rescue cost',
+  task_reward: 'Task reward',
+}
+
+type ProfileTab = 'xp' | 'credits'
 
 const ProfilePage = () => {
   const router = useRouter()
@@ -22,6 +37,8 @@ const ProfilePage = () => {
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithAccount | null>(null)
   const [recentTasks, setRecentTasks] = useState<RecentTask[]>([])
   const [earnedRewards, setEarnedRewards] = useState<EarnedReward[]>([])
+  const [creditLedger, setCreditLedger] = useState<ProfileCreditLedgerEvent[]>([])
+  const [activeTab, setActiveTab] = useState<ProfileTab>('xp')
   const [currentLevelXP, setCurrentLevelXP] = useState(0)
   const [nextLevelXP, setNextLevelXP] = useState(0)
 
@@ -72,10 +89,14 @@ const ProfilePage = () => {
   useEffect(() => {
     const loadProfileData = async () => {
       if (selectedProfile) {
-        const tasks = await fetchRecentTasks(selectedProfile.id)
-        const rewards = await fetchEarnedRewards(selectedProfile.id)
+        const [tasks, rewards, ledger] = await Promise.all([
+          fetchRecentTasks(selectedProfile.id),
+          fetchEarnedRewards(selectedProfile.id),
+          fetchProfileCreditLedger(selectedProfile.id),
+        ])
         setRecentTasks(tasks)
         setEarnedRewards(rewards)
+        setCreditLedger(ledger)
         await updateLevelData(selectedProfile.id, selectedProfile.level, selectedProfile.xp)
       }
     }
@@ -227,104 +248,190 @@ const ProfilePage = () => {
         </div>
       </section>
 
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Recent Tasks</h2>
-          <button onClick={handleLogTask} className="text-sm font-medium text-blue-300">Add</button>
-        </div>
-        {recentTasks.length > 0 ? (
-          <div className="space-y-3 sm:hidden">
-            {recentTasks.map((task) => (
-              <div key={task.id} className="rounded-md bg-gray-800 p-4 shadow-md">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold text-white">{task.actions.name}</h3>
-                    <p className="text-sm text-gray-300">{new Date(task.timestamp).toLocaleDateString()}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-blue-200 px-2 py-1 text-xs text-blue-800">
-                    {task.base_xp + (task.bonus_xp || 0)} XP
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-md bg-gray-800 p-4 text-gray-300">No tasks logged yet.</div>
-        )}
-
-        {recentTasks.length > 0 && (
-          <div className="hidden overflow-hidden rounded-md bg-gray-800 shadow-md sm:block">
-            <table className="w-full text-left text-gray-300">
-              <thead className="bg-gray-700 text-xs uppercase text-white">
-                <tr>
-                  <th className="px-4 py-2">Task</th>
-                  <th className="px-4 py-2">Date</th>
-                  <th className="px-4 py-2">XP</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentTasks.map((task) => (
-                  <tr key={task.id} className="border-t border-gray-700">
-                    <td className="px-4 py-2 text-white">{task.actions.name}</td>
-                    <td className="px-4 py-2">{new Date(task.timestamp).toLocaleDateString()}</td>
-                    <td className="px-4 py-2">{task.base_xp + (task.bonus_xp || 0)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Rewards</h2>
-          <button onClick={() => router.push(`/rewards?profileId=${selectedProfile.id}`)} className="text-sm font-medium text-blue-300">All</button>
+      <section className="space-y-4">
+        <div className="grid grid-cols-2 rounded-md bg-gray-800 p-1 shadow-md">
+          <button
+            type="button"
+            onClick={() => setActiveTab('xp')}
+            className={`rounded px-3 py-2 text-sm font-medium ${activeTab === 'xp' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
+          >
+            XP & Rewards
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('credits')}
+            className={`rounded px-3 py-2 text-sm font-medium ${activeTab === 'credits' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
+          >
+            Credits
+          </button>
         </div>
 
-        {earnedRewards.length > 0 ? (
-          <div className="space-y-3 sm:hidden">
-            {earnedRewards.map((reward) => (
-              <div key={reward.reward_id} className="rounded-md bg-gray-800 p-4 shadow-md">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold text-white">{reward.rewards.name}</h3>
-                    <p className="text-sm text-gray-300">{new Date(reward.created_at).toLocaleDateString()}</p>
-                  </div>
-                  <span className={reward.is_claimed ? 'shrink-0 text-sm text-green-400' : 'shrink-0 text-sm text-yellow-300'}>
-                    {reward.is_claimed ? 'Claimed' : 'Unclaimed'}
-                  </span>
-                </div>
+        {activeTab === 'xp' && (
+          <div className="space-y-6">
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">Recent Tasks</h2>
+                <button onClick={handleLogTask} className="text-sm font-medium text-blue-300">Add</button>
               </div>
-            ))}
+              {recentTasks.length > 0 ? (
+                <div className="space-y-3 sm:hidden">
+                  {recentTasks.map((task) => (
+                    <div key={task.id} className="rounded-md bg-gray-800 p-4 shadow-md">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-semibold text-white">{task.actions.name}</h3>
+                          <p className="text-sm text-gray-300">{new Date(task.timestamp).toLocaleDateString()}</p>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-blue-200 px-2 py-1 text-xs text-blue-800">
+                          {task.base_xp + (task.bonus_xp || 0)} XP
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-md bg-gray-800 p-4 text-gray-300">No tasks logged yet.</div>
+              )}
+
+              {recentTasks.length > 0 && (
+                <div className="hidden overflow-hidden rounded-md bg-gray-800 shadow-md sm:block">
+                  <table className="w-full text-left text-gray-300">
+                    <thead className="bg-gray-700 text-xs uppercase text-white">
+                      <tr>
+                        <th className="px-4 py-2">Task</th>
+                        <th className="px-4 py-2">Date</th>
+                        <th className="px-4 py-2">XP</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentTasks.map((task) => (
+                        <tr key={task.id} className="border-t border-gray-700">
+                          <td className="px-4 py-2 text-white">{task.actions.name}</td>
+                          <td className="px-4 py-2">{new Date(task.timestamp).toLocaleDateString()}</td>
+                          <td className="px-4 py-2">{task.base_xp + (task.bonus_xp || 0)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">Rewards</h2>
+                <button onClick={() => router.push(`/rewards?profileId=${selectedProfile.id}`)} className="text-sm font-medium text-blue-300">All</button>
+              </div>
+
+              {earnedRewards.length > 0 ? (
+                <div className="space-y-3 sm:hidden">
+                  {earnedRewards.map((reward) => (
+                    <div key={reward.reward_id} className="rounded-md bg-gray-800 p-4 shadow-md">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-semibold text-white">{reward.rewards.name}</h3>
+                          <p className="text-sm text-gray-300">{new Date(reward.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <span className={reward.is_claimed ? 'shrink-0 text-sm text-green-400' : 'shrink-0 text-sm text-yellow-300'}>
+                          {reward.is_claimed ? 'Claimed' : 'Unclaimed'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-md bg-gray-800 p-4 text-gray-300">No rewards earned yet.</div>
+              )}
+
+              {earnedRewards.length > 0 && (
+                <div className="hidden overflow-hidden rounded-md bg-gray-800 shadow-md sm:block">
+                  <table className="w-full text-left text-gray-300">
+                    <thead className="bg-gray-700 text-xs uppercase text-white">
+                      <tr>
+                        <th className="px-4 py-2">Reward</th>
+                        <th className="px-4 py-2">Date</th>
+                        <th className="px-4 py-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {earnedRewards.map((reward) => (
+                        <tr key={reward.reward_id} className="border-t border-gray-700">
+                          <td className="px-4 py-2 text-white">{reward.rewards.name}</td>
+                          <td className="px-4 py-2">{new Date(reward.created_at).toLocaleDateString()}</td>
+                          <td className={reward.is_claimed ? 'px-4 py-2 text-green-400' : 'px-4 py-2 text-yellow-300'}>
+                            {reward.is_claimed ? 'Claimed' : 'Unclaimed'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </div>
-        ) : (
-          <div className="rounded-md bg-gray-800 p-4 text-gray-300">No rewards earned yet.</div>
         )}
 
-        {earnedRewards.length > 0 && (
-          <div className="hidden overflow-hidden rounded-md bg-gray-800 shadow-md sm:block">
-            <table className="w-full text-left text-gray-300">
-              <thead className="bg-gray-700 text-xs uppercase text-white">
-                <tr>
-                  <th className="px-4 py-2">Reward</th>
-                  <th className="px-4 py-2">Date</th>
-                  <th className="px-4 py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {earnedRewards.map((reward) => (
-                  <tr key={reward.reward_id} className="border-t border-gray-700">
-                    <td className="px-4 py-2 text-white">{reward.rewards.name}</td>
-                    <td className="px-4 py-2">{new Date(reward.created_at).toLocaleDateString()}</td>
-                    <td className={reward.is_claimed ? 'px-4 py-2 text-green-400' : 'px-4 py-2 text-yellow-300'}>
-                      {reward.is_claimed ? 'Claimed' : 'Unclaimed'}
-                    </td>
-                  </tr>
+        {activeTab === 'credits' && (
+          <section>
+            <div className="mb-3">
+              <h2 className="text-xl font-bold text-white">Credit Ledger</h2>
+              <p className="text-sm text-gray-300">Current balance: {formatCredits(selectedProfile.credit_account?.balance)}</p>
+            </div>
+
+            {creditLedger.length > 0 ? (
+              <div className="space-y-3 sm:hidden">
+                {creditLedger.map((event) => (
+                  <div key={event.id} className="rounded-md bg-gray-800 p-4 shadow-md">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-white">{creditEventLabels[event.event_type] ?? event.event_type}</h3>
+                        <p className="text-sm text-gray-300">{new Date(event.created_at).toLocaleDateString()}</p>
+                        {event.note && <p className="mt-1 text-sm text-gray-400">{event.note}</p>}
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className={event.amount >= 0 ? 'font-semibold text-green-300' : 'font-semibold text-red-300'}>
+                          {formatSignedCredits(event.amount)}
+                        </p>
+                        <p className="text-xs text-gray-400">{formatCredits(event.balance_after)}</p>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            ) : (
+              <div className="rounded-md bg-gray-800 p-4 text-gray-300">No credit events logged yet.</div>
+            )}
+
+            {creditLedger.length > 0 && (
+              <div className="hidden overflow-hidden rounded-md bg-gray-800 shadow-md sm:block">
+                <table className="w-full text-left text-gray-300">
+                  <thead className="bg-gray-700 text-xs uppercase text-white">
+                    <tr>
+                      <th className="px-4 py-2">Event</th>
+                      <th className="px-4 py-2">Date</th>
+                      <th className="px-4 py-2">Amount</th>
+                      <th className="px-4 py-2">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {creditLedger.map((event) => (
+                      <tr key={event.id} className="border-t border-gray-700">
+                        <td className="px-4 py-2">
+                          <p className="font-medium text-white">{creditEventLabels[event.event_type] ?? event.event_type}</p>
+                          {event.note && <p className="text-xs text-gray-400">{event.note}</p>}
+                        </td>
+                        <td className="px-4 py-2">{new Date(event.created_at).toLocaleDateString()}</td>
+                        <td className={event.amount >= 0 ? 'px-4 py-2 text-green-300' : 'px-4 py-2 text-red-300'}>
+                          {formatSignedCredits(event.amount)}
+                        </td>
+                        <td className="px-4 py-2">{formatCredits(event.balance_after)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         )}
       </section>
 

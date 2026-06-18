@@ -5,6 +5,7 @@ import {
   CreditEventType,
   CreditOwnerType,
   ManagedProfile,
+  ProfileCreditLedgerEvent,
   ProfileWithAccount,
   Room,
   RoomState,
@@ -180,6 +181,40 @@ export const fetchCreditAccountsForProfiles = async (profileIds: string[]): Prom
 
   if (error) throw error;
   return (data ?? []).map((account) => normalizeCreditAccount(account as CreditAccount));
+};
+
+export const fetchProfileCreditLedger = async (
+  profileId: string,
+  limit = 25
+): Promise<ProfileCreditLedgerEvent[]> => {
+  const supabase = createClient();
+
+  const { data: account, error: accountError } = await supabase
+    .from('credit_accounts')
+    .select('*')
+    .eq('owner_type', 'profile')
+    .eq('profile_id', profileId)
+    .maybeSingle();
+
+  if (accountError) throw accountError;
+  if (!account) return [];
+
+  const normalizedAccount = normalizeCreditAccount(account as CreditAccount);
+  const { data, error } = await supabase
+    .from('credit_events')
+    .select('*')
+    .eq('account_id', normalizedAccount.id)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+
+  return (data ?? []).map((event) => ({
+    ...(event as CreditEvent),
+    amount: Number(event.amount),
+    balance_after: event.balance_after === null ? null : Number(event.balance_after),
+    account: normalizedAccount,
+  }));
 };
 
 export const fetchProfilesWithCreditAccounts = async (appUserIds: string | string[]): Promise<ProfileWithAccount[]> => {
