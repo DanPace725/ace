@@ -131,7 +131,7 @@ export interface CreditAccount {
   profile_id: string | null;
   room_id: string | null;
   balance: number;
-  last_settled_at: string;
+  last_settled_at: string | null;
   created_at: string;
   updated_at: string;
 }

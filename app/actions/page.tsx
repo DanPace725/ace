@@ -11,6 +11,7 @@ import { awardProfileTaskCredits, calculateProfileTaskCredits } from '@/utils/ap
 import { Action, ManagedProfile } from '@/types/app'
 import { toast } from 'react-toastify'
 import { getCurrentAppUserIdentity, requireCurrentAppUserIdentity } from '@/utils/api/appUsers'
+import { economyRates } from '@/utils/economyConfig'
 
 const getTodayDate = () => new Date().toISOString().slice(0, 10)
 const formatTaskCredits = (baseXp: number) => `${calculateProfileTaskCredits(baseXp).toFixed(2)} credits`
@@ -149,6 +150,10 @@ const LogTaskPage = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="rounded-md bg-gray-800 p-4 text-sm text-gray-300 shadow-lg">
+          Task credits use base XP only. {economyRates.profile.xpPerHour} XP equals {economyRates.profile.hourlyCreditRate.toFixed(2)} credits.
+        </div>
+
         <div className="rounded-md bg-gray-800 p-4 shadow-lg">
           <label htmlFor="profile" className="mb-2 block text-sm font-medium text-gray-300">Profile</label>
           <select
@@ -216,14 +221,17 @@ const LogTaskPage = () => {
             <span className="text-gray-400">{showBonusXP ? 'Hide' : 'Optional'}</span>
           </button>
           {showBonusXP && (
-            <input
-              type="number"
-              id="bonusXP"
-              value={bonusXP}
-              onChange={(e) => setBonusXP(e.target.value)}
-              className="mt-3 w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-3 text-white focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-              placeholder="0"
-            />
+            <>
+              <input
+                type="number"
+                id="bonusXP"
+                value={bonusXP}
+                onChange={(e) => setBonusXP(e.target.value)}
+                className="mt-3 w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-3 text-white focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                placeholder="0"
+              />
+              <p className="mt-2 text-xs text-gray-400">Bonus XP affects XP and levels, not credit payout.</p>
+            </>
           )}
         </div>
 

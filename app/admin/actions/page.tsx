@@ -7,6 +7,7 @@ import { fetchActions, createAction, updateAction, deleteAction } from '@/utils/
 import { calculateProfileTaskCredits } from '@/utils/api/economy';
 import { Action } from '@/types/app';
 import { getCurrentAppUserIdentity, requireCurrentAppUserIdentity } from '@/utils/api/appUsers';
+import { economyRates } from '@/utils/economyConfig';
 
 type ActionFormState = {
   name: string;
@@ -129,6 +130,10 @@ const ManageActionsPage = () => {
           </button>
         </div>
         
+        <div className="mb-6 rounded-md bg-gray-900 p-4 text-sm text-gray-300">
+          1 credit equals $1. {economyRates.profile.xpPerHour} base XP equals {economyRates.profile.hourlyCreditRate.toFixed(2)} credits. Bonus XP is XP-only and does not increase task credits.
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
           <input
             type="text"
@@ -153,6 +158,11 @@ const ManageActionsPage = () => {
             className="w-full bg-gray-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          {actionForm.base_xp > 0 && (
+            <p className="rounded-md bg-gray-900 px-3 py-2 text-sm text-gray-300">
+              Credit value: <span className="font-medium text-white">{formatTaskCredits(actionForm.base_xp)}</span>
+            </p>
+          )}
           <input
             type="text"
             placeholder="Frequency"
@@ -212,7 +222,7 @@ const ManageActionsPage = () => {
                 <th className="px-4 py-2">Name</th>
                 <th className="px-4 py-2">Description</th>
                 <th className="px-4 py-2">Base XP</th>
-                <th className="px-4 py-2">Base Credits</th>
+                <th className="px-4 py-2">Credits</th>
                 <th className="px-4 py-2">Frequency</th>
                 <th className="px-4 py-2">Actions</th>
               </tr>
@@ -282,6 +292,11 @@ const ManageActionsPage = () => {
                   className="w-full rounded-md bg-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
+                {editForm.base_xp > 0 && (
+                  <p className="rounded-md bg-gray-900 px-3 py-2 text-sm text-gray-300">
+                    Credit value: <span className="font-medium text-white">{formatTaskCredits(editForm.base_xp)}</span>
+                  </p>
+                )}
                 <input
                   type="text"
                   placeholder="Frequency"

@@ -1,13 +1,15 @@
 export const economyRates = {
   profile: {
-    taskCreditPerXp: 0.1,
+    xpPerHour: 100,
+    hourlyCreditRate: 7.25,
+    taskCreditPerXp: 0.0725,
   },
   room: {
-    cleanHourly: 0.0035,
-    needsAttentionHourly: -0.0005,
-    messyHourly: -0.0015,
-    criticalHourly: -0.003,
-    dailyLossCap: 0.05,
+    cleanHourly: 0.00035,
+    needsAttentionHourly: -0.00005,
+    messyHourly: -0.00015,
+    criticalHourly: -0.0003,
+    dailyLossCap: 0.005,
   },
   responsibility: {
     graceHours: 2,
@@ -22,13 +24,18 @@ export const economyRates = {
     veryLateMultiplier: 0,
   },
   house: {
-    cleanHourly: 0.0015,
+    cleanHourly: 0.00015,
     needsAttentionHourly: 0,
-    messyHourly: -0.0005,
-    criticalHourly: -0.001,
+    messyHourly: -0.00005,
+    criticalHourly: -0.0001,
     dividendRate: 0.02,
-    dailyLossCap: 0.02,
+    dailyLossCap: 0.002,
   },
+} as const;
+
+export const creditEconomy = {
+  creditDollarValue: 1,
+  roomSettlementIntervalHours: 24,
 } as const;
 
 export const roomStateLabels = {

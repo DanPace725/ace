@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'react-toastify'
 import { createActionLog } from '@/utils/api/actionLogs'
 import { getCurrentAppUserIdentity, requireCurrentAppUserIdentity } from '@/utils/api/appUsers'
-import { awardProfileTaskCredits } from '@/utils/api/economy'
+import { awardProfileTaskCredits, calculateProfileTaskCredits } from '@/utils/api/economy'
 import { updateProfileXP } from '@/utils/api/profiles'
 import { earnReward, fetchRewards } from '@/utils/api/rewards'
 import { fetchPendingActionLogs, updatePendingActionLogStatus } from '@/utils/api/reviewQueue'
@@ -126,6 +126,7 @@ const ReviewQueuePage = () => {
             {pendingLogs.map((pendingLog) => {
               const isActive = activeLogId === pendingLog.id
               const totalXP = pendingLog.base_xp + pendingLog.bonus_xp
+              const creditValue = calculateProfileTaskCredits(pendingLog.base_xp)
 
               return (
                 <div key={pendingLog.id} className="rounded-md bg-gray-700 p-4">
@@ -138,6 +139,9 @@ const ReviewQueuePage = () => {
                     <span className="shrink-0 rounded-full bg-blue-200 px-2 py-1 text-xs text-blue-800">
                       {totalXP} XP
                     </span>
+                  </div>
+                  <div className="mb-4 rounded-md bg-gray-800 p-3 text-sm text-gray-300">
+                    Credit payout: <span className="font-medium text-white">{creditValue.toFixed(2)} credits</span> from {pendingLog.base_xp} base XP. Bonus XP is XP-only.
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
