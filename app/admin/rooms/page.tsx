@@ -8,13 +8,16 @@ import {
   archiveRoom,
   createRoom,
   fetchRooms,
+  getRoomSettlementAgeHours,
   getProjectedRoomCredit,
+  isRoomSettlementDue,
+  settleDueRooms,
   settleRoomCredits,
   updateRoom,
 } from '@/utils/api/economy'
 import { getCurrentAppUserIdentity, requireCurrentAppUserIdentity } from '@/utils/api/appUsers'
 import { fetchManagedProfiles } from '@/utils/api/profiles'
-import { economyRates, roomStateLabels } from '@/utils/economyConfig'
+import { creditEconomy, economyRates, roomStateLabels } from '@/utils/economyConfig'
 import { ManagedProfile, RoomState, RoomWithAccount } from '@/types/app'
 
 type RoomFormState = {
@@ -62,6 +65,8 @@ export default function ManageRoomsPage() {
   const [adjustingRoom, setAdjustingRoom] = useState<RoomWithAccount | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [clock, setClock] = useState(() => Date.now())
+  const currentTime = new Date(clock)
+  const dueRoomCount = rooms.filter((room) => isRoomSettlementDue(room, currentTime)).length
 
   const profileNameById = profiles.reduce<Record<string, string>>((lookup, profile) => {
     lookup[profile.id] = profile.name
@@ -227,11 +232,31 @@ export default function ManageRoomsPage() {
     setIsLoading(true)
     try {
       const identity = await requireCurrentAppUserIdentity()
-      const event = await settleRoomCredits(room, identity.appUserId)
+      const event = await settleRoomCredits(room, identity.appUserId, { settleZeroDelta: true })
       await loadRooms()
       toast.success(event ? 'Room credits settled' : 'No credit change to settle')
     } catch (error) {
       toast.error('Failed to settle room credits')
+      console.error(error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSettleDueRooms = async () => {
+    setIsLoading(true)
+    try {
+      const identity = await requireCurrentAppUserIdentity()
+      const summary = await settleDueRooms(identity.lookupIds, identity.appUserId, new Date(clock))
+      await loadRooms()
+
+      if (summary.dueRoomCount === 0) {
+        toast.success('No rooms are due for settlement')
+      } else {
+        toast.success(`Settled ${summary.dueRoomCount} due room${summary.dueRoomCount === 1 ? '' : 's'}`)
+      }
+    } catch (error) {
+      toast.error('Failed to settle due rooms')
       console.error(error)
     } finally {
       setIsLoading(false)
@@ -310,8 +335,18 @@ export default function ManageRoomsPage() {
           </button>
         </div>
 
-        <div className="mb-6 rounded-md bg-gray-900 p-4 text-sm text-gray-300">
-          Clean rooms earn {(economyRates.room.cleanHourly * 100).toFixed(2)}% per hour. Messy rooms lose {Math.abs(economyRates.room.messyHourly * 100).toFixed(2)}% per hour. Shared rooms pay {(economyRates.house.dividendRate * 100).toFixed(0)}% of positive settlements back to profiles.
+        <div className="mb-6 grid gap-3 rounded-md bg-gray-900 p-4 text-sm text-gray-300 sm:grid-cols-[1fr_auto] sm:items-center">
+          <p>
+            1 credit equals ${creditEconomy.creditDollarValue}. Clean rooms earn {(economyRates.room.cleanHourly * 100).toFixed(3)}% per hour. Messy rooms lose {Math.abs(economyRates.room.messyHourly * 100).toFixed(3)}% per hour. Shared rooms pay {(economyRates.house.dividendRate * 100).toFixed(0)}% of positive settlements back to profiles. Rooms are due for settlement every {creditEconomy.roomSettlementIntervalHours} hours.
+          </p>
+          <button
+            type="button"
+            onClick={handleSettleDueRooms}
+            className="w-full rounded-md bg-blue-600 px-4 py-3 font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-600 sm:w-auto"
+            disabled={isLoading}
+          >
+            {dueRoomCount > 0 ? `Settle Due (${dueRoomCount})` : 'Settle Due'}
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mb-8 space-y-4">
@@ -325,8 +360,10 @@ export default function ManageRoomsPage() {
         ) : (
           <div className="space-y-3">
             {rooms.map((room) => {
-              const projection = getProjectedRoomCredit(room, new Date(clock))
+              const projection = getProjectedRoomCredit(room, currentTime)
               const deltaTone = projection.delta >= 0 ? 'text-green-300' : 'text-red-300'
+              const settlementAgeHours = getRoomSettlementAgeHours(room, currentTime)
+              const settlementDue = isRoomSettlementDue(room, currentTime)
 
               return (
                 <div key={room.id} className="rounded-md bg-gray-700 p-4">
@@ -346,7 +383,7 @@ export default function ManageRoomsPage() {
                       <p className="text-gray-300">{room.is_shared ? 'Shared' : 'Private'}</p>
                     </div>
                   </div>
-                  <div className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+                  <div className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
                     <div className="rounded-md bg-gray-800 p-3">
                       <p className="text-gray-400">Stored</p>
                       <p className="font-medium text-white">{formatCredits(room.credit_account?.balance)}</p>
@@ -358,6 +395,12 @@ export default function ManageRoomsPage() {
                     <div className="rounded-md bg-gray-800 p-3">
                       <p className="text-gray-400">Elapsed</p>
                       <p className="font-medium text-white">{projection.elapsedHours.toFixed(1)} hours</p>
+                    </div>
+                    <div className="rounded-md bg-gray-800 p-3">
+                      <p className="text-gray-400">Settlement</p>
+                      <p className={settlementDue ? 'font-medium text-yellow-300' : 'font-medium text-white'}>
+                        {settlementDue ? 'Due' : `${settlementAgeHours.toFixed(1)} hours`}
+                      </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

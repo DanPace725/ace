@@ -11,7 +11,7 @@ import {
   RoomState,
   RoomWithAccount,
 } from '@/types/app';
-import { calculateProjectedRoomBalance, economyRates } from '@/utils/economyConfig';
+import { calculateProjectedRoomBalance, creditEconomy, economyRates } from '@/utils/economyConfig';
 
 interface CreditAccountInput {
   app_user_id: string;
@@ -70,6 +70,10 @@ interface ProfileDividendTarget {
   account: CreditAccount;
 }
 
+interface RoomSettlementOptions {
+  settleZeroDelta?: boolean;
+}
+
 export interface RoomCreditTimelinePoint {
   timestamp: string;
   balance: number;
@@ -79,6 +83,12 @@ export interface RoomCreditTimelinePoint {
 export interface RoomCreditTimeline {
   room: RoomWithAccount;
   points: RoomCreditTimelinePoint[];
+}
+
+export interface RoomSettlementSummary {
+  settledEvents: CreditEvent[];
+  touchedRoomIds: string[];
+  dueRoomCount: number;
 }
 
 const normalizeCreditAccount = (account: CreditAccount): CreditAccount => ({
@@ -109,6 +119,19 @@ export const getProjectedRoomCredit = (room: RoomWithAccount, now?: Date) => cal
   lastSettledAt: room.credit_account?.last_settled_at,
   now,
 });
+
+export const getRoomSettlementAgeHours = (room: RoomWithAccount, now = new Date()) => {
+  const lastSettledAt = room.credit_account?.last_settled_at
+    ? new Date(room.credit_account.last_settled_at)
+    : new Date(room.created_at);
+
+  return Math.max((now.getTime() - lastSettledAt.getTime()) / (1000 * 60 * 60), 0);
+};
+
+export const isRoomSettlementDue = (room: RoomWithAccount, now = new Date()) => (
+  Boolean(room.credit_account)
+    && getRoomSettlementAgeHours(room, now) >= creditEconomy.roomSettlementIntervalHours
+);
 
 export const ensureCreditAccount = async (input: CreditAccountInput): Promise<CreditAccount> => {
   const supabase = createClient();
@@ -503,6 +526,19 @@ export const createCreditEvent = async (event: CreditEventInput): Promise<Credit
   return data as CreditEvent;
 };
 
+const touchCreditAccountSettlement = async (accountId: string): Promise<void> => {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('credit_accounts')
+    .update({
+      last_settled_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', accountId);
+
+  if (error) throw error;
+};
+
 export const adjustProfileCredits = async ({
   app_user_id,
   profile,
@@ -528,9 +564,9 @@ export const adjustProfileCredits = async ({
   });
 };
 
-export const calculateProfileTaskCredits = (baseXp: number, bonusXp = 0) => {
-  const totalXp = Math.max(Number(baseXp) + Number(bonusXp || 0), 0);
-  return Number((totalXp * economyRates.profile.taskCreditPerXp).toFixed(2));
+export const calculateProfileTaskCredits = (baseXp: number) => {
+  const creditedXp = Math.max(Number(baseXp), 0);
+  return Number((creditedXp * economyRates.profile.taskCreditPerXp).toFixed(2));
 };
 
 export const awardProfileTaskCredits = async ({
@@ -542,7 +578,7 @@ export const awardProfileTaskCredits = async ({
   bonus_xp,
   created_by,
 }: ProfileTaskCreditInput): Promise<CreditEvent | null> => {
-  const amount = calculateProfileTaskCredits(base_xp, bonus_xp ?? 0);
+  const amount = calculateProfileTaskCredits(base_xp);
   if (amount <= 0) return null;
 
   const account = await ensureProfileCreditAccount(app_user_id, profile_id);
@@ -576,7 +612,11 @@ export const awardProfileTaskCredits = async ({
       action_log_id: action_log_id ?? null,
       base_xp,
       bonus_xp: bonus_xp ?? 0,
+      credited_xp: base_xp,
+      bonus_xp_credit_policy: 'xp_only',
       credit_per_xp: economyRates.profile.taskCreditPerXp,
+      hourly_credit_rate: economyRates.profile.hourlyCreditRate,
+      xp_per_hour: economyRates.profile.xpPerHour,
     },
     created_by,
   });
@@ -699,7 +739,8 @@ export const settleSharedRoomDividend = async (
 
 export const settleRoomCredits = async (
   room: RoomWithAccount,
-  createdBy?: string | null
+  createdBy?: string | null,
+  options: RoomSettlementOptions = {}
 ): Promise<CreditEvent | null> => {
   const account = room.credit_account;
   if (!account) return null;
@@ -708,6 +749,9 @@ export const settleRoomCredits = async (
   const amount = Number(projection.delta.toFixed(4));
 
   if (Math.abs(amount) < 0.0001) {
+    if (options.settleZeroDelta) {
+      await touchCreditAccountSettlement(account.id);
+    }
     return null;
   }
 
@@ -731,4 +775,29 @@ export const settleRoomCredits = async (
 
   await settleSharedRoomDividend(room, settledEvent, createdBy);
   return settledEvent;
+};
+
+export const settleDueRooms = async (
+  appUserIds: string | string[],
+  createdBy?: string | null,
+  now = new Date()
+): Promise<RoomSettlementSummary> => {
+  const rooms = await fetchRooms(appUserIds);
+  const dueRooms = rooms.filter((room) => isRoomSettlementDue(room, now));
+  const settledEvents: CreditEvent[] = [];
+  const touchedRoomIds: string[] = [];
+
+  for (const room of dueRooms) {
+    const event = await settleRoomCredits(room, createdBy, { settleZeroDelta: true });
+    touchedRoomIds.push(room.id);
+    if (event) {
+      settledEvents.push(event);
+    }
+  }
+
+  return {
+    settledEvents,
+    touchedRoomIds,
+    dueRoomCount: dueRooms.length,
+  };
 };
