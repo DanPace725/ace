@@ -105,7 +105,7 @@ export const fetchLevelReward = async (level: number): Promise<Reward | null> =>
     .from('level_rewards')
     .select('*, rewards(*)')
     .eq('level_number', level)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data ? data.rewards as Reward : null;
