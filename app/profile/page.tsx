@@ -1,16 +1,16 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
 import 'react-circular-progressbar/dist/styles.css'
-import { fetchProfileData, fetchRecentTasks, fetchEarnedRewards, updateProfileLevel } from '@/utils/api/profiles'
-import { fetchLevelData } from '@/utils/api/levels'
+import { fetchRecentTasks, fetchEarnedRewards, updateProfileLevel } from '@/utils/api/profiles'
+import { calculateLevelProgress, fetchLevels, LevelData } from '@/utils/api/levels'
 import { fetchLevelReward, earnReward } from '@/utils/api/rewards'
 import { RecentTask, EarnedReward, ProfileCreditLedgerEvent, ProfileWithAccount } from '@/types/app'
 import { toast } from 'react-toastify'
 import { getCurrentAppUserIdentity } from '@/utils/api/appUsers'
-import { fetchCreditAccountsForProfiles, fetchProfileCreditLedger, fetchProfilesWithCreditAccounts } from '@/utils/api/economy'
+import { fetchProfileCreditLedger, fetchProfilesWithCreditAccounts } from '@/utils/api/economy'
 import { createClient } from '@/utils/supabase/client'
 
 const formatCredits = (value?: number | null) => `${(value ?? 0).toFixed(2)} credits`
@@ -39,17 +39,24 @@ const ProfilePage = () => {
   const [earnedRewards, setEarnedRewards] = useState<EarnedReward[]>([])
   const [creditLedger, setCreditLedger] = useState<ProfileCreditLedgerEvent[]>([])
   const [activeTab, setActiveTab] = useState<ProfileTab>('xp')
-  const [currentLevelXP, setCurrentLevelXP] = useState(0)
-  const [nextLevelXP, setNextLevelXP] = useState(0)
+  const [levels, setLevels] = useState<LevelData[]>([])
 
   useEffect(() => {
     const loadProfiles = async () => {
       const identity = await getCurrentAppUserIdentity()
       if (identity) {
-        const fetchedProfiles = await fetchProfilesWithCreditAccounts(identity.lookupIds)
+        const [fetchedProfiles, fetchedLevels] = await Promise.all([
+          fetchProfilesWithCreditAccounts(identity.lookupIds),
+          fetchLevels(),
+        ])
+        const requestedProfileId = new URLSearchParams(window.location.search).get('profileId')
+        const initialProfile = fetchedProfiles.find((profile) => profile.id === requestedProfileId)
+          ?? fetchedProfiles[0]
+
         setProfiles(fetchedProfiles)
-        if (fetchedProfiles.length > 0) {
-          setSelectedProfile(fetchedProfiles[0])
+        setLevels(fetchedLevels)
+        if (initialProfile) {
+          setSelectedProfile(initialProfile)
         }
       }
     }
@@ -70,73 +77,86 @@ const ProfilePage = () => {
     }
   }, [])
 
-  const updateLevelData = useCallback(async (profileId: string, currentLevel: number, currentXP: number) => {
-    const levelData = await fetchLevelData(currentLevel)
-    if (levelData && levelData.length > 0) {
-      setCurrentLevelXP(levelData[0].cumulative_xp || 0)
-      setNextLevelXP(levelData[1]?.cumulative_xp || levelData[0].xp_required)
-
-      if (currentXP >= levelData[1]?.cumulative_xp) {
-        const newLevel = currentLevel + 1
-        await updateProfileLevel(profileId, newLevel)
-        setSelectedProfile(prev => prev ? { ...prev, level: newLevel } : null)
-        await distributeLevelReward(profileId, newLevel)
-        await updateLevelData(profileId, newLevel, currentXP)
-      }
-    }
-  }, [distributeLevelReward])
+  const levelProgress = useMemo(
+    () => calculateLevelProgress(selectedProfile?.xp ?? 0, levels, selectedProfile?.level ?? 1),
+    [levels, selectedProfile?.level, selectedProfile?.xp]
+  )
+  const selectedProfileId = selectedProfile?.id
 
   useEffect(() => {
+    let cancelled = false
+
     const loadProfileData = async () => {
-      if (selectedProfile) {
+      if (selectedProfileId) {
         const [tasks, rewards, ledger] = await Promise.all([
-          fetchRecentTasks(selectedProfile.id),
-          fetchEarnedRewards(selectedProfile.id),
-          fetchProfileCreditLedger(selectedProfile.id),
+          fetchRecentTasks(selectedProfileId),
+          fetchEarnedRewards(selectedProfileId),
+          fetchProfileCreditLedger(selectedProfileId),
         ])
+        if (cancelled) return
+
         setRecentTasks(tasks)
         setEarnedRewards(rewards)
         setCreditLedger(ledger)
-        await updateLevelData(selectedProfile.id, selectedProfile.level, selectedProfile.xp)
       }
     }
 
     loadProfileData()
-  }, [selectedProfile, updateLevelData])
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedProfileId])
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const profileId = urlParams.get('profileId')
-    if (profileId && profiles.length > 0) {
-      const profile = profiles.find(p => p.id === profileId)
-      if (profile) {
-        setSelectedProfile(profile)
-      }
+    if (!selectedProfile || levels.length === 0 || selectedProfile.level === levelProgress.level) {
+      return
     }
-  }, [profiles])
 
-  const selectProfile = async (profileId: string) => {
-    try {
-      const profile = await fetchProfileData(profileId)
-      const accounts = await fetchCreditAccountsForProfiles([profile.id])
-      const profileWithAccount = {
-        ...profile,
-        credit_account: accounts.find((account) => account.profile_id === profile.id) ?? null,
-      }
-      setSelectedProfile(profileWithAccount)
-      setProfiles((currentProfiles) =>
-        currentProfiles.map((currentProfile) => (
-          currentProfile.id === profile.id ? profileWithAccount : currentProfile
+    let cancelled = false
+
+    const syncLevel = async () => {
+      const previousLevel = selectedProfile.level
+
+      try {
+        await updateProfileLevel(selectedProfile.id, levelProgress.level)
+        if (cancelled) return
+
+        setProfiles((currentProfiles) => currentProfiles.map((profile) => (
+          profile.id === selectedProfile.id ? { ...profile, level: levelProgress.level } : profile
+        )))
+        setSelectedProfile((currentProfile) => (
+          currentProfile?.id === selectedProfile.id
+            ? { ...currentProfile, level: levelProgress.level }
+            : currentProfile
         ))
-      )
-    } catch (error) {
-      toast.error('Failed to load profile')
-      console.error(error)
-    }
-  }
 
-  const handleProfileChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    await selectProfile(e.target.value)
+        if (levelProgress.level > previousLevel) {
+          for (let level = previousLevel + 1; level <= levelProgress.level; level += 1) {
+            await distributeLevelReward(selectedProfile.id, level)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update profile level:', error)
+        toast.error('Failed to update profile level')
+      }
+    }
+
+    syncLevel()
+
+    return () => {
+      cancelled = true
+    }
+  }, [distributeLevelReward, levelProgress.level, levels.length, selectedProfile])
+
+  const handleProfileChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const profile = profiles.find((candidate) => candidate.id === e.target.value)
+    if (!profile) return
+
+    setSelectedProfile(profile)
+    const urlParams = new URLSearchParams(window.location.search)
+    urlParams.set('profileId', profile.id)
+    router.replace(`/profile?${urlParams.toString()}`, { scroll: false })
   }
 
   const handleLogTask = () => {
@@ -151,16 +171,6 @@ const ProfilePage = () => {
     } else {
       router.push('/login')
     }
-  }
-
-  const calculateProgress = () => {
-    if (!selectedProfile || nextLevelXP <= currentLevelXP) {
-      return 0
-    }
-
-    const totalXPForNextLevel = nextLevelXP - currentLevelXP
-    const currentProgress = selectedProfile.xp - currentLevelXP
-    return Math.max(0, Math.min((currentProgress / totalXPForNextLevel) * 100, 100))
   }
 
   if (profiles.length === 0 && !selectedProfile) {
@@ -183,8 +193,6 @@ const ProfilePage = () => {
   if (!selectedProfile) {
     return <div className="mx-auto max-w-md rounded-md bg-gray-800 p-5 text-gray-300">Loading...</div>
   }
-
-  const xpToNext = Math.max(nextLevelXP - selectedProfile.xp, 0)
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
@@ -209,8 +217,8 @@ const ProfilePage = () => {
         <div className="grid grid-cols-[88px_1fr] items-center gap-4">
           <div className="h-20 w-20">
             <CircularProgressbar
-              value={calculateProgress()}
-              text={`${selectedProfile.level}`}
+              value={levelProgress.progress}
+              text={`${levelProgress.level}`}
               styles={buildStyles({
                 textColor: '#ffffff',
                 pathColor: '#3b82f6',
@@ -219,10 +227,14 @@ const ProfilePage = () => {
             />
           </div>
           <div className="space-y-1 text-white">
-            <p className="text-sm text-gray-300">Level {selectedProfile.level}</p>
+            <p className="text-sm text-gray-300">Level {levelProgress.level}</p>
             <p className="text-lg font-semibold">{selectedProfile.xp} XP</p>
             <p className="text-sm text-gray-300">{formatCredits(selectedProfile.credit_account?.balance)}</p>
-            <p className="text-sm text-gray-300">{xpToNext} XP to next level</p>
+            <p className="text-sm text-gray-300">
+              {levelProgress.xpToNext === null
+                ? 'Highest configured level reached'
+                : `${levelProgress.xpToNext} XP to next level`}
+            </p>
           </div>
         </div>
 
