@@ -11,7 +11,6 @@ import { RecentTask, EarnedReward, ProfileCreditLedgerEvent, ProfileWithAccount 
 import { toast } from 'react-toastify'
 import { getCurrentAppUserIdentity } from '@/utils/api/appUsers'
 import { fetchProfileCreditLedger, fetchProfilesWithCreditAccounts } from '@/utils/api/economy'
-import { createClient } from '@/utils/supabase/client'
 
 const formatCredits = (value?: number | null) => `${(value ?? 0).toFixed(2)} credits`
 
@@ -32,7 +31,6 @@ type ProfileTab = 'xp' | 'credits'
 
 const ProfilePage = () => {
   const router = useRouter()
-  const supabase = createClient()
   const [profiles, setProfiles] = useState<ProfileWithAccount[]>([])
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithAccount | null>(null)
   const [recentTasks, setRecentTasks] = useState<RecentTask[]>([])
@@ -161,16 +159,6 @@ const ProfilePage = () => {
 
   const handleLogTask = () => {
     router.push(`/actions?profileId=${selectedProfile?.id}`)
-  }
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      toast.error('Failed to sign out')
-      console.error(error)
-    } else {
-      router.push('/login')
-    }
   }
 
   if (profiles.length === 0 && !selectedProfile) {
@@ -447,26 +435,6 @@ const ProfilePage = () => {
         )}
       </section>
 
-      <section className="rounded-md bg-gray-800 p-4 shadow-lg sm:p-6">
-        <div className="mb-4">
-          <p className="text-sm text-gray-400">Account</p>
-          <h2 className="text-xl font-bold text-white">Profile Tools</h2>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <button
-            onClick={() => router.push('/admin')}
-            className="rounded-md bg-gray-700 px-4 py-3 font-medium text-white hover:bg-gray-600"
-          >
-            Admin
-          </button>
-          <button
-            onClick={handleLogout}
-            className="rounded-md bg-gray-700 px-4 py-3 font-medium text-white hover:bg-gray-600"
-          >
-            Logout
-          </button>
-        </div>
-      </section>
     </div>
   )
 }

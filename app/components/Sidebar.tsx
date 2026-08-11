@@ -11,7 +11,7 @@ const Sidebar = ({ isOpen, toggleSidebar }: { isOpen: boolean, toggleSidebar: ()
 
   const navItems = [
     { name: 'Home', path: '/dashboard/stats' },
-    { name: 'Profile', path: '/profile' },
+    { name: 'Profiles', path: '/profile' },
     { name: 'Log Task', path: '/actions' },
     { name: 'Rewards', path: '/rewards' },
     { name: 'Admin', path: '/admin' },
