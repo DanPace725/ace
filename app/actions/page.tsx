@@ -248,7 +248,7 @@ const LogTaskPage = () => {
             onClick={() => router.push(selectedProfile ? `/profile?profileId=${selectedProfile.id}` : '/profile')}
             className="w-full rounded-md bg-gray-700 p-3 font-medium text-white transition hover:bg-gray-600"
           >
-            Profile
+            View Profile
           </button>
         </div>
       </form>

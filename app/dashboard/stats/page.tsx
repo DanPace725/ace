@@ -213,7 +213,7 @@ export default function StatsDashboardPage() {
             onClick={() => router.push('/profile')}
             className="rounded-md bg-gray-700 px-4 py-3 text-sm font-medium text-white hover:bg-gray-600"
           >
-            Profile
+            Profiles
           </button>
         </div>
       </section>
